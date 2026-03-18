@@ -2,45 +2,134 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Группа</title>
+<title>Монитор статусов</title>
 
 <style>
-body { font-family: Arial; padding: 20px; }
-.user-item { display: flex; align-items: center; margin-bottom: 10px; }
-.status-dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; }
-button { margin: 5px; }
+body {
+  font-family: Arial, sans-serif;
+  background: #0f172a;
+  color: white;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 500px;
+  margin: auto;
+  background: #1e293b;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+h2 {
+  margin-top: 0;
+}
+
+#myInfo {
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #38bdf8;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  color: white;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+.green { background: #22c55e; }
+.orange { background: #f97316; }
+.red { background: #ef4444; }
+.blue { background: #3b82f6; }
+
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  background: #334155;
+  padding: 10px;
+  border-radius: 10px;
+  transition: 0.2s;
+}
+
+.user-item:hover {
+  background: #475569;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.username {
+  font-weight: bold;
+}
+
+.status {
+  font-size: 13px;
+  color: #cbd5f5;
+}
 </style>
 
 </head>
 <body>
 
-<h2>Мой профиль</h2>
+<div class="container">
+
+<h2>👤 Мой профиль</h2>
 <div id="myInfo"></div>
 
-<div>
-<button onclick="changeStatus('Учусь', 'green')">Учусь</button>
-<button onclick="changeStatus('Кофе', 'orange')">Кофе</button>
-<button onclick="changeStatus('В игре', 'red')">В игре</button>
-<button onclick="changeStatus('Дома', 'blue')">Дома</button>
+<div class="buttons">
+  <button class="green" onclick="changeStatus('Учусь','green')">Учусь</button>
+  <button class="orange" onclick="changeStatus('Кофе','orange')">Кофе</button>
+  <button class="red" onclick="changeStatus('В игре','red')">В игре</button>
+  <button class="blue" onclick="changeStatus('Дома','blue')">Дома</button>
 </div>
 
-<h2>Монитор группы</h2>
-<div id="grouplist"></div>
+<h2>👥 Группа</h2>
+<div id="grouplist" class="user-list"></div>
+
+</div>
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-const URL = 'https://rncerhgizyjhovbdpqnl.supabase.co';
-const KEY = 'sb_publishable_ThtftS6uBeaKf8FyndIFTg_00HMJ5yh';
+// 🔴 ВСТАВЬ СВОИ ДАННЫЕ
+const URL = 'https://uztmyzrkkjktpqabmbqj.supabase.co';
+const KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
+const MY_ID = 'ce12600c-861e-4bf4-a856-fbd16adad257';
 
 const supabase = createClient(URL, KEY);
 
-const MY_ID = 'ce12600c-861e-4bf4-a856-fbd16adad257';
-
+// смена статуса
 window.changeStatus = async (text, color) => {
   const { error } = await supabase
     .from('profiles')
-    .update({ status: text, color: color })
+    .update({ status: text })
     .eq('id', MY_ID);
 
   if (error) {
@@ -51,6 +140,7 @@ window.changeStatus = async (text, color) => {
   }
 };
 
+// загрузка
 async function fetchGroup() {
   const { data, error } = await supabase
     .from('profiles')
@@ -66,12 +156,10 @@ async function fetchGroup() {
 
   list.innerHTML = data.map(user => `
     <div class="user-item">
-      <div class="status-dot" style="background: ${user.color || '#ccc'}"></div>
-      <div style="flex-grow: 1;">
-        <strong>${user.username}</strong><br>
-        <small style="color: #666;">
-          ${user.status || "Статус не задан"}
-        </small>
+      <div class="status-dot" style="background: ${getColor(user.status)}"></div>
+      <div>
+        <div class="username">${user.username}</div>
+        <div class="status">${user.status || "Нет статуса"}</div>
       </div>
     </div>
   `).join('');
@@ -79,12 +167,24 @@ async function fetchGroup() {
   const me = data.find(u => u.id === MY_ID);
 
   if (me) {
-    document.getElementById('myInfo').innerText = `Вы зашли как: ${me.username}`;
+    document.getElementById('myInfo').innerText = `Вы: ${me.username}`;
+  }
+}
+
+// цвет по статусу
+function getColor(status) {
+  switch(status) {
+    case 'Учусь': return '#22c55e';
+    case 'Кофе': return '#f97316';
+    case 'В игре': return '#ef4444';
+    case 'Дома': return '#3b82f6';
+    default: return '#64748b';
   }
 }
 
 fetchGroup();
 setInterval(fetchGroup, 5000);
+
 </script>
 
 </body>
