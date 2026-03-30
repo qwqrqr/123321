@@ -4,7 +4,70 @@
 <meta charset="UTF-8">
 <title>Монитор статусов</title>
 <style>
-/* ... оставляем твои стили без изменений ... */
+/* === Твои стили остаются === */
+body {
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: #f5f5f5;
+  color: #1f2937;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+}
+
+.container {
+  background: #ffffff;
+  border-radius: 25px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  padding: 30px 25px;
+  margin-top: 40px;
+  width: 100%;
+  max-width: 500px;
+  transition: transform 0.3s;
+}
+
+.container:hover { transform: translateY(-3px); }
+
+h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#myInfo { margin-bottom: 20px; font-size: 1.1rem; color: #3b82f6; font-weight: 500; }
+
+.buttons { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 25px; }
+
+button {
+  flex: 1; padding: 12px 0; border: none; border-radius: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.25s ease; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  color: #ffffff;
+}
+button:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 6px 12px rgba(0,0,0,0.15); }
+
+.green { background: #22c55e; }
+.orange { background: #f97316; }
+.red { background: #ef4444; }
+.blue { background: #3b82f6; }
+
+.user-list { display: flex; flex-direction: column; gap: 12px; }
+.user-item { display: flex; align-items: center; background: #f9fafb; padding: 12px 15px; border-radius: 12px; transition: 0.3s; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+.user-item:hover { background: #eef2f7; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+.status-dot { width: 14px; height: 14px; border-radius: 50%; margin-right: 12px; flex-shrink: 0; transition: background 0.3s; }
+.username { font-weight: 600; font-size: 1rem; color: #1f2937; }
+.status { font-size: 0.85rem; color: #6b7280; }
+
+/* Скрывать элементы */
+.hidden { display: none; }
+
 </style>
 </head>
 <body>
@@ -14,15 +77,15 @@
   <h2>👤 Мой профиль</h2>
   <div id="myInfo">Загрузка...</div>
 
-  <div class="buttons">
+  <div class="buttons hidden" id="statusButtons">
     <button class="green" onclick="changeStatus('Учусь','green')">Учусь</button>
     <button class="orange" onclick="changeStatus('Кофе','orange')">Кофе</button>
     <button class="red" onclick="changeStatus('В игре','red')">В игре</button>
     <button class="blue" onclick="changeStatus('Дома','blue')">Дома</button>
   </div>
 
-  <button onclick="login()">Войти через Google</button>
-  <button onclick="logout()">Выйти</button>
+  <button id="loginBtn" onclick="login()">Войти через Google</button>
+  <button id="logoutBtn" class="hidden" onclick="logout()">Выйти</button>
 
   <h2>👥 Группа</h2>
   <div id="grouplist" class="user-list">Загрузка...</div>
@@ -32,51 +95,57 @@
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// Supabase
 const URL = 'https://uztmyzrkkjktpqabmbqj.supabase.co';
 const KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
 const supabase = createClient(URL, KEY);
 
-// Текущий пользователь
 let MY_ID = null;
 
-// 🔹 Вход через Google
+// Вход через Google
 window.login = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google'
-  });
-  if (error) console.error("Ошибка входа:", error);
+  const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+  if (error) console.error(error);
 };
 
-// 🔹 Выход
+// Выход
 window.logout = async () => {
   await supabase.auth.signOut();
   location.reload();
 };
 
-// 🔹 Получаем пользователя
+// Получение пользователя
 async function getUser() {
   const { data: { user } } = await supabase.auth.getUser();
+
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const statusButtons = document.getElementById('statusButtons');
 
   if (user) {
     MY_ID = user.id;
     document.getElementById('myInfo').innerText = `Вы: ${user.user_metadata.full_name}`;
+    loginBtn.classList.add('hidden');
+    logoutBtn.classList.remove('hidden');
+    statusButtons.classList.remove('hidden');
 
     // Добавляем в таблицу profiles, если ещё нет
     const { error } = await supabase.from('profiles').upsert({
       id: user.id,
       username: user.user_metadata.full_name,
-      status: '' // пустой статус при первом входе
+      status: ''
     });
     if (error) console.error(error);
 
     fetchGroup();
   } else {
     document.getElementById('myInfo').innerText = 'Не авторизован';
+    loginBtn.classList.remove('hidden');
+    logoutBtn.classList.add('hidden');
+    statusButtons.classList.add('hidden');
   }
 }
 
-// 🔹 Смена статуса
+// Смена статуса
 window.changeStatus = async (text, color) => {
   if (!MY_ID) {
     alert("Сначала войдите через Google!");
@@ -86,26 +155,17 @@ window.changeStatus = async (text, color) => {
     .from('profiles')
     .update({ status: text })
     .eq('id', MY_ID);
-
-  if (error) {
-    alert("Ошибка при обновлении статуса!");
-    console.error(error);
-  } else {
-    fetchGroup();
-  }
+  if (error) console.error(error);
+  fetchGroup();
 };
 
-// 🔹 Загрузка пользователей
+// Загрузка пользователей
 async function fetchGroup() {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .order('username', { ascending: true });
-
-  if (error) {
-    console.error(error);
-    return;
-  }
+  if (error) console.error(error);
 
   const list = document.getElementById('grouplist');
   list.innerHTML = data.map(user => `
@@ -119,7 +179,7 @@ async function fetchGroup() {
   `).join('');
 }
 
-// 🔹 Цвет по статусу
+// Цвет по статусу
 function getColor(status) {
   switch(status) {
     case 'Учусь': return '#22c55e';
@@ -130,7 +190,7 @@ function getColor(status) {
   }
 }
 
-// 🔹 Проверяем, есть ли пользователь при загрузке
+// Проверка пользователя при загрузке
 getUser();
 setInterval(fetchGroup, 5000);
 
