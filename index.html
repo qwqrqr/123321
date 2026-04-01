@@ -47,7 +47,9 @@ button {
   margin-bottom: 10px;
 }
 .status-dot {
-  width: 12px; height: 12px; border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
   margin-right: 10px;
 }
 .username { font-weight: bold; }
@@ -79,14 +81,15 @@ button {
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// Вставь свои значения
+// 💡 Вставь свои значения:
 const SUPABASE_URL = 'https://uztmyzrkkjktpqabmbqj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
+
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let MY_ID = null;
 
-// Вход через Google
+// ————————— LOGIN
 window.login = async () => {
   await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -94,18 +97,21 @@ window.login = async () => {
   });
 };
 
-// Выход
+// ————————— LOGOUT
 window.logout = async () => {
   if (MY_ID) {
-    await supabase.from('profiles')
+    await supabase
+      .from('profiles')
       .update({ is_online: false })
-      .eq('id', MY_ID);
+      .eq('id', MY_ID)
+      .select('*'); // важно для корректного REST‑запроса
   }
+
   await supabase.auth.signOut();
   location.reload();
 };
 
-// Получение пользователя
+// ————————— GET USER
 async function getUser() {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -122,14 +128,17 @@ async function getUser() {
     logoutBtn.classList.remove('hidden');
     statusButtons.classList.remove('hidden');
 
-    // добавляем профиль, если нет
-    await supabase.from('profiles').upsert({
-      id: user.id,
-      username: user.user_metadata.full_name,
-      status: '',
-      status_start: null,
-      is_online: true
-    });
+    // добавляем/обновляем профиль
+    await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        username: user.user_metadata.full_name,
+        status: '',
+        status_start: null,
+        is_online: true
+      })
+      .select('*'); // важно для корректного REST‑запроса
 
     fetchGroup();
   } else {
@@ -140,43 +149,47 @@ async function getUser() {
   }
 }
 
-// Изменение статуса
+// ————————— CHANGE STATUS
 window.changeStatus = async (text) => {
   if (!MY_ID) return;
 
-  await supabase.from('profiles')
+  await supabase
+    .from('profiles')
     .update({
       status: text,
       status_start: new Date().toISOString()
     })
-    .eq('id', MY_ID);
+    .eq('id', MY_ID)
+    .select('*'); // ✨ добавили select
 
   fetchGroup();
 };
 
-// Закончить сессию
+// ————————— END SESSION
 window.endSession = async () => {
   if (!MY_ID) return;
 
-  await supabase.from('profiles')
+  await supabase
+    .from('profiles')
     .update({ status: '', status_start: null })
-    .eq('id', MY_ID);
+    .eq('id', MY_ID)
+    .select('*'); // ✨ добавили select
 
   fetchGroup();
 };
 
-// Формат времени
+// ————————— TIMER FORMAT
 function formatTime(sec) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}м ${s}с`;
 }
 
-// Загрузка группы
+// ————————— FETCH GROUP
 async function fetchGroup() {
   const { data } = await supabase
     .from('profiles')
-    .select('*');
+    .select('*'); // ✨ всегда select('*') для REST API
 
   const now = new Date();
 
@@ -201,13 +214,15 @@ async function fetchGroup() {
 
 window.addEventListener('beforeunload', async () => {
   if (MY_ID) {
-    await supabase.from('profiles')
+    await supabase
+      .from('profiles')
       .update({ is_online: false })
-      .eq('id', MY_ID);
+      .eq('id', MY_ID)
+      .select('*'); // ✨ тоже с select
   }
 });
 
-// Запуск
+// ————————— RUN
 getUser();
 setInterval(fetchGroup, 1000);
 </script>
