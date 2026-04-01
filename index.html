@@ -104,19 +104,22 @@
 <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-const URL = 'https://uztmyzrkkjktpqabmbqj.supabase.co'; 
-const KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
+    // КОНФИГУРАЦИЯ (Вставь свои данные)
+    const SUPABASE_URL = 'https://uztmyzrkkjktpqabmbqj.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let MY_ID = null;
 
+    // ЭЛЕМЕНТЫ DOM
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const statusButtonsDiv = document.getElementById('statusButtons');
     const myInfo = document.getElementById('myInfo');
     const grouplist = document.getElementById('grouplist');
 
+    // ЛОГИКА АВТОРИЗАЦИИ
     async function login() {
         await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -132,6 +135,7 @@ const KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
         location.reload();
     }
 
+    // РАБОТА С ПРОФИЛЕМ
     async function checkUser() {
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -162,6 +166,7 @@ const KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
         }
     }
 
+    // СМЕНА СТАТУСА
     async function changeStatus(text) {
         if (!MY_ID) return;
 
@@ -176,6 +181,7 @@ const KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
         fetchGroup();
     }
 
+    // ЗАГРУЗКА ГРУППЫ
     async function fetchGroup() {
         const { data, error } = await supabase
             .from('profiles')
@@ -218,6 +224,7 @@ const KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
         return `${m}м ${s}с`;
     }
 
+    // СЛУШАТЕЛИ СОБЫТИЙ
     loginBtn.addEventListener('click', login);
     logoutBtn.addEventListener('click', logout);
 
@@ -225,6 +232,7 @@ const KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
         btn.addEventListener('click', () => changeStatus(btn.getAttribute('data-status')));
     });
 
+    // Обработка закрытия вкладки
     window.addEventListener('beforeunload', () => {
         if (MY_ID) {
             // Используем navigator.sendBeacon или неасинхронный запрос, если нужно надежнее, 
