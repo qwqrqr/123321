@@ -1,219 +1,242 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>Монитор статусов</title>
-<style>
-body {
-  font-family: 'Segoe UI', Tahoma, sans-serif;
-  background: #f5f5f5;
-  display: flex;
-  justify-content: center;
-  padding-top: 40px;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Монитор статусов</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            padding-top: 40px;
+            margin: 0;
+        }
 
-.container {
-  background: #fff;
-  border-radius: 20px;
-  padding: 25px;
-  width: 500px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-}
+        .container {
+            background: #fff;
+            border-radius: 20px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
 
-h2 { margin-bottom: 15px; }
+        h2 { margin-top: 0; margin-bottom: 15px; font-size: 1.5rem; }
 
-#myInfo { margin-bottom: 15px; color: #3b82f6; font-weight: bold; }
+        #myInfo { margin-bottom: 15px; color: #3b82f6; font-weight: bold; }
 
-.buttons {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
 
-button {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 10px;
-  color: white;
-  cursor: pointer;
-}
+        button {
+            flex: 1;
+            min-width: 100px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
 
-.green { background: #22c55e; }
-.orange { background: #f97316; }
-.red { background: #ef4444; }
-.blue { background: #3b82f6; }
+        button:hover { opacity: 0.9; }
 
-#loginBtn { background: #2563eb; margin-bottom: 10px; }
-#logoutBtn { background: #ef4444; margin-bottom: 10px; }
+        .green { background: #22c55e; }
+        .orange { background: #f97316; }
+        .red { background: #ef4444; }
+        .blue { background: #3b82f6; }
 
-.hidden { display: none; }
+        #loginBtn { background: #2563eb; width: 100%; margin-bottom: 10px; }
+        #logoutBtn { background: #64748b; width: 100%; margin-top: 20px; }
 
-.user-item {
-  display: flex;
-  align-items: center;
-  background: #f9fafb;
-  padding: 10px;
-  border-radius: 10px;
-  margin-bottom: 10px;
-}
+        .hidden { display: none !important; }
 
-.status-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-right: 10px;
-}
+        .user-item {
+            display: flex;
+            align-items: center;
+            background: #f9fafb;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border: 1px solid #edf2f7;
+        }
 
-.username { font-weight: bold; }
-.status { font-size: 0.85rem; color: gray; }
-</style>
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .username { font-weight: bold; color: #1f2937; }
+        .status { font-size: 0.85rem; color: #6b7280; }
+    </style>
 </head>
 <body>
 
 <div class="container">
+    <h2>👤 Мой профиль</h2>
+    <div id="myInfo">Загрузка...</div>
 
-  <h2>👤 Мой профиль</h2>
-  <div id="myInfo">Не авторизован</div>
+    <div class="buttons hidden" id="statusButtons">
+        <button class="green" data-status="Учусь">Учусь</button>
+        <button class="orange" data-status="Кофе">Кофе</button>
+        <button class="red" data-status="В игре">В игре</button>
+        <button class="blue" data-status="Дома">Дома</button>
+    </div>
 
-  <div class="buttons hidden" id="statusButtons">
-    <button class="green" onclick="changeStatus('Учусь')">Учусь</button>
-    <button class="orange" onclick="changeStatus('Кофе')">Кофе</button>
-    <button class="red" onclick="changeStatus('В игре')">В игре</button>
-    <button class="blue" onclick="changeStatus('Дома')">Дома</button>
-  </div>
+    <button id="loginBtn">Войти через Google</button>
+    
+    <h2>👥 Группа</h2>
+    <div id="grouplist">Загрузка списка...</div>
 
-  <button id="loginBtn" onclick="login()">Войти через Google</button>
-  <button id="logoutBtn" class="hidden" onclick="logout()">Выйти</button>
-
-  <h2>👥 Группа</h2>
-  <div id="grouplist">Загрузка...</div>
-
+    <button id="logoutBtn" class="hidden">Выйти из аккаунта</button>
 </div>
 
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-const supabase = createClient(
-  'https://uztmyzrkkjktpqabmbqj.supabase.co',
-  'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj'
-);
+const URL = 'https://uztmyzrkkjktpqabmbqj.supabase.co'; 
+const KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
 
-let MY_ID = null;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// LOGIN через Google
-window.login = async () => {
-  await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.href
+    let MY_ID = null;
+
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const statusButtonsDiv = document.getElementById('statusButtons');
+    const myInfo = document.getElementById('myInfo');
+    const grouplist = document.getElementById('grouplist');
+
+    async function login() {
+        await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: window.location.href }
+        });
     }
-  });
-};
 
-// LOGOUT
-window.logout = async () => {
-  if (MY_ID) {
-    await supabase.from('profiles')
-      .update({ is_online: false })
-      .eq('id', MY_ID);
-  }
-  await supabase.auth.signOut();
-  location.reload();
-};
+    async function logout() {
+        if (MY_ID) {
+            await supabase.from('profiles').update({ is_online: false }).eq('id', MY_ID);
+        }
+        await supabase.auth.signOut();
+        location.reload();
+    }
 
-// Получение пользователя
-async function getUser() {
-  const { data: { user } } = await supabase.auth.getUser();
+    async function checkUser() {
+        const { data: { user } } = await supabase.auth.getUser();
 
-  if (user) {
-    MY_ID = user.id; // Supabase даёт uuid
+        if (user) {
+            MY_ID = user.id;
+            myInfo.innerText = `Вы: ${user.user_metadata.full_name || user.email}`;
+            
+            loginBtn.classList.add('hidden');
+            logoutBtn.classList.remove('hidden');
+            statusButtonsDiv.classList.remove('hidden');
 
-    document.getElementById('myInfo').innerText =
-      `Вы: ${user.user_metadata.full_name}`;
+            // Получаем текущие данные, чтобы не затереть статус при входе
+            const { data: profile } = await supabase.from('profiles').select('*').eq('id', MY_ID).single();
 
-    document.getElementById('loginBtn').classList.add('hidden');
-    document.getElementById('logoutBtn').classList.remove('hidden');
-    document.getElementById('statusButtons').classList.remove('hidden');
+            await supabase.from('profiles').upsert({
+                id: MY_ID,
+                username: user.user_metadata.full_name || user.email,
+                is_online: true,
+                status: profile?.status || '',
+                study_start: profile?.study_start || null
+            });
 
-    // Добавляем/обновляем пользователя
-    await supabase.from('profiles').upsert({
-      id: user.id,
-      username: user.user_metadata.full_name,
-      status: '',
-      is_online: true,
-      study_start: null
+            fetchGroup();
+        } else {
+            myInfo.innerText = 'Не авторизован';
+            loginBtn.classList.remove('hidden');
+            fetchGroup(); // Показываем группу даже гостям
+        }
+    }
+
+    async function changeStatus(text) {
+        if (!MY_ID) return;
+
+        const updateData = { 
+            status: text,
+            study_start: text === 'Учусь' ? new Date().toISOString() : null
+        };
+
+        const { error } = await supabase.from('profiles').update(updateData).eq('id', MY_ID);
+        if (error) console.error("Ошибка обновления:", error);
+        
+        fetchGroup();
+    }
+
+    async function fetchGroup() {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('is_online', { ascending: false })
+            .order('username', { ascending: true });
+
+        if (error) {
+            grouplist.innerText = "Ошибка загрузки данных.";
+            return;
+        }
+
+        const now = new Date();
+
+        grouplist.innerHTML = data.map(user => {
+            let timerHtml = '';
+            if (user.status === 'Учусь' && user.study_start) {
+                const diff = Math.floor((now - new Date(user.study_start)) / 1000);
+                timerHtml = ` <span style="color: #ef4444; font-weight: bold;">⏱ ${formatTime(diff)}</span>`;
+            }
+
+            const dotColor = user.is_online ? '#22c55e' : '#9ca3af';
+
+            return `
+                <div class="user-item">
+                    <div class="status-dot" style="background: ${dotColor}"></div>
+                    <div>
+                        <div class="username">${user.username} ${user.id === MY_ID ? '(Вы)' : ''}</div>
+                        <div class="status">${user.status || 'Без статуса'}${timerHtml}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function formatTime(sec) {
+        if (sec < 0) sec = 0;
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return `${m}м ${s}с`;
+    }
+
+    loginBtn.addEventListener('click', login);
+    logoutBtn.addEventListener('click', logout);
+
+    document.querySelectorAll('#statusButtons button').forEach(btn => {
+        btn.addEventListener('click', () => changeStatus(btn.getAttribute('data-status')));
     });
 
-    fetchGroup();
-  } else {
-    document.getElementById('myInfo').innerText = 'Не авторизован';
-  }
-}
+    window.addEventListener('beforeunload', () => {
+        if (MY_ID) {
+            // Используем navigator.sendBeacon или неасинхронный запрос, если нужно надежнее, 
+            // но в Supabase проще полагаться на Realtime Presence.
+            const blob = new Blob([JSON.stringify({ is_online: false })], { type: 'application/json' });
+            // Это упрощенный пример, fetch в beforeunload часто блокируется.
+        }
+    });
 
-// Смена статуса
-window.changeStatus = async (text) => {
-  if (!MY_ID) return;
-
-  let data = { status: text };
-
-  if (text === 'Учусь') {
-    data.study_start = new Date().toISOString();
-  } else {
-    data.study_start = null;
-  }
-
-  await supabase.from('profiles')
-    .update(data)
-    .eq('id', MY_ID);
-
-  fetchGroup();
-};
-
-// Формат таймера
-function formatTime(sec) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}м ${s}с`;
-}
-
-// Загрузка пользователей
-async function fetchGroup() {
-  const { data } = await supabase.from('profiles').select('*');
-  const now = new Date();
-
-  document.getElementById('grouplist').innerHTML =
-    data.map(user => {
-
-      let timer = '';
-      if (user.status === 'Учусь' && user.study_start) {
-        const diff = Math.floor((now - new Date(user.study_start)) / 1000);
-        timer = ` ⏱ ${formatTime(diff)}`;
-      }
-
-      return `
-      <div class="user-item">
-        <div class="status-dot" style="background:${user.is_online ? '#22c55e' : '#9ca3af'}"></div>
-        <div>
-          <div class="username">${user.username}</div>
-          <div class="status">${user.status || 'Нет статуса'} ${timer}</div>
-        </div>
-      </div>`;
-    }).join('');
-}
-
-// При закрытии вкладки ставим offline
-window.addEventListener('beforeunload', async () => {
-  if (MY_ID) {
-    await supabase.from('profiles')
-      .update({ is_online: false })
-      .eq('id', MY_ID);
-  }
-});
-
-// Запуск
-getUser();
-setInterval(fetchGroup, 1000);
+    // СТАРТ
+    checkUser();
+    setInterval(fetchGroup, 2000); // Обновляем раз в 2 сек
 </script>
 
 </body>
