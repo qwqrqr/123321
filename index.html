@@ -79,7 +79,6 @@ button {
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// 🔑 Вставь свои значения
 const SUPABASE_URL = 'https://uztmyzrkkjktpqabmbqj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -142,13 +141,15 @@ async function getUser() {
 window.changeStatus = async (text) => {
   if (!MY_ID) return;
 
-  await supabase.from('profiles')
+  const { error } = await supabase.from('profiles')
     .update({
       status: text,
       status_start: new Date().toISOString()
     })
     .eq('id', MY_ID)
     .select('*');
+
+  if (error) console.log(error);
 
   fetchGroup();
 };
@@ -157,10 +158,12 @@ window.changeStatus = async (text) => {
 window.endSession = async () => {
   if (!MY_ID) return;
 
-  await supabase.from('profiles')
+  const { error } = await supabase.from('profiles')
     .update({ status: '', status_start: null })
     .eq('id', MY_ID)
     .select('*');
+
+  if (error) console.log(error);
 
   fetchGroup();
 };
