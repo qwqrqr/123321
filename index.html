@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Монитор статусов</title>
-
 <style>
 body {
   font-family: 'Segoe UI', Tahoma, sans-serif;
@@ -23,11 +22,7 @@ body {
 
 h2 { margin-bottom: 15px; }
 
-#myInfo {
-  margin-bottom: 15px;
-  color: #3b82f6;
-  font-weight: bold;
-}
+#myInfo { margin-bottom: 15px; color: #3b82f6; font-weight: bold; }
 
 .buttons {
   display: flex;
@@ -74,7 +69,6 @@ button {
 .status { font-size: 0.85rem; color: gray; }
 </style>
 </head>
-
 <body>
 
 <div class="container">
@@ -107,12 +101,12 @@ const supabase = createClient(
 
 let MY_ID = null;
 
-// LOGIN
+// LOGIN через Google
 window.login = async () => {
   await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'https://qwqrqr.github.io/123321/'
+      redirectTo: window.location.href
     }
   });
 };
@@ -124,17 +118,16 @@ window.logout = async () => {
       .update({ is_online: false })
       .eq('id', MY_ID);
   }
-
   await supabase.auth.signOut();
   location.reload();
 };
 
-// GET USER
+// Получение пользователя
 async function getUser() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
-    MY_ID = user.id;
+    MY_ID = user.id; // Supabase даёт uuid
 
     document.getElementById('myInfo').innerText =
       `Вы: ${user.user_metadata.full_name}`;
@@ -143,21 +136,22 @@ async function getUser() {
     document.getElementById('logoutBtn').classList.remove('hidden');
     document.getElementById('statusButtons').classList.remove('hidden');
 
+    // Добавляем/обновляем пользователя
     await supabase.from('profiles').upsert({
       id: user.id,
       username: user.user_metadata.full_name,
       status: '',
-      is_online: true
+      is_online: true,
+      study_start: null
     });
 
     fetchGroup();
-
   } else {
     document.getElementById('myInfo').innerText = 'Не авторизован';
   }
 }
 
-// CHANGE STATUS
+// Смена статуса
 window.changeStatus = async (text) => {
   if (!MY_ID) return;
 
@@ -176,26 +170,22 @@ window.changeStatus = async (text) => {
   fetchGroup();
 };
 
-// TIMER FORMAT
+// Формат таймера
 function formatTime(sec) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}м ${s}с`;
 }
 
-// LOAD USERS
+// Загрузка пользователей
 async function fetchGroup() {
-  const { data } = await supabase
-    .from('profiles')
-    .select('*');
-
+  const { data } = await supabase.from('profiles').select('*');
   const now = new Date();
 
   document.getElementById('grouplist').innerHTML =
     data.map(user => {
 
       let timer = '';
-
       if (user.status === 'Учусь' && user.study_start) {
         const diff = Math.floor((now - new Date(user.study_start)) / 1000);
         timer = ` ⏱ ${formatTime(diff)}`;
@@ -203,22 +193,16 @@ async function fetchGroup() {
 
       return `
       <div class="user-item">
-        <div class="status-dot"
-          style="background:${user.is_online ? '#22c55e' : '#9ca3af'}">
-        </div>
-
+        <div class="status-dot" style="background:${user.is_online ? '#22c55e' : '#9ca3af'}"></div>
         <div>
           <div class="username">${user.username}</div>
-          <div class="status">
-            ${user.status || 'Нет статуса'} ${timer}
-          </div>
+          <div class="status">${user.status || 'Нет статуса'} ${timer}</div>
         </div>
-      </div>
-      `;
+      </div>`;
     }).join('');
 }
 
-// CLOSE TAB
+// При закрытии вкладки ставим offline
 window.addEventListener('beforeunload', async () => {
   if (MY_ID) {
     await supabase.from('profiles')
@@ -227,7 +211,7 @@ window.addEventListener('beforeunload', async () => {
   }
 });
 
-// START
+// Запуск
 getUser();
 setInterval(fetchGroup, 1000);
 </script>
