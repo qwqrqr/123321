@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Монитор статусов</title>
-
 <style>
 body {
   font-family: 'Segoe UI', Tahoma, sans-serif;
@@ -12,29 +11,15 @@ body {
   justify-content: center;
   padding-top: 40px;
 }
-
 .container {
   background: #fff;
   border-radius: 20px;
   padding: 25px;
-  width: 400px;
+  width: 420px;
   box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
-
-h2 { margin: 0 0 15px; }
-
-#myInfo {
-  margin-bottom: 15px;
-  color: #3b82f6;
-  font-weight: bold;
-}
-
-.buttons {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
+h2 { margin-bottom: 15px; }
+#myInfo { margin-bottom: 15px; color: #3b82f6; font-weight: bold; }
 button {
   flex: 1;
   padding: 10px;
@@ -43,17 +28,16 @@ button {
   color: white;
   cursor: pointer;
 }
-
+.buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
 .green { background: #22c55e; }
 .orange { background: #f97316; }
 .red { background: #ef4444; }
 .blue { background: #3b82f6; }
-
+.yellow { background: #FACC15; color: #111; }
+.black { background: #111827; }
 #loginBtn { background: #2563eb; width: 100%; margin-bottom: 10px; }
 #logoutBtn { background: #ef4444; width: 100%; margin-bottom: 10px; }
-
 .hidden { display: none; }
-
 .user-item {
   display: flex;
   align-items: center;
@@ -62,23 +46,17 @@ button {
   border-radius: 10px;
   margin-bottom: 10px;
 }
-
 .status-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+  width: 12px; height: 12px; border-radius: 50%;
   margin-right: 10px;
 }
-
 .username { font-weight: bold; }
 .status { font-size: 0.85rem; color: gray; }
 </style>
 </head>
-
 <body>
 
 <div class="container">
-
   <h2>👤 Мой профиль</h2>
   <div id="myInfo">Не авторизован</div>
 
@@ -87,6 +65,8 @@ button {
     <button class="orange" onclick="changeStatus('Кофе')">Кофе</button>
     <button class="red" onclick="changeStatus('В игре')">В игре</button>
     <button class="blue" onclick="changeStatus('Дома')">Дома</button>
+    <button class="yellow" onclick="changeStatus('Перерыв')">Перерыв</button>
+    <button class="black" onclick="endSession()">Закончить</button>
   </div>
 
   <button id="loginBtn" onclick="login()">Войти через Google</button>
@@ -94,43 +74,38 @@ button {
 
   <h2>👥 Группа</h2>
   <div id="grouplist">Загрузка...</div>
-
 </div>
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// === Вставь свои значения ===
+// Вставь свои значения
 const SUPABASE_URL = 'https://uztmyzrkkjktpqabmbqj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let MY_ID = null;
 
-// === LOGIN ===
+// Вход через Google
 window.login = async () => {
   await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: 'https://qwqrqr.github.io/123321/'
-    }
+    options: { redirectTo: window.location.href }
   });
 };
 
-// === LOGOUT ===
+// Выход
 window.logout = async () => {
   if (MY_ID) {
     await supabase.from('profiles')
       .update({ is_online: false })
       .eq('id', MY_ID);
   }
-
   await supabase.auth.signOut();
   location.reload();
 };
 
-// === GET USER ===
+// Получение пользователя
 async function getUser() {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -140,7 +115,6 @@ async function getUser() {
 
   if (user) {
     MY_ID = user.id;
-
     document.getElementById('myInfo').innerText =
       `Вы: ${user.user_metadata.full_name}`;
 
@@ -148,50 +122,57 @@ async function getUser() {
     logoutBtn.classList.remove('hidden');
     statusButtons.classList.remove('hidden');
 
-    // Добавляем/обновляем профиль
+    // добавляем профиль, если нет
     await supabase.from('profiles').upsert({
       id: user.id,
       username: user.user_metadata.full_name,
       status: '',
+      status_start: null,
       is_online: true
     });
 
     fetchGroup();
-
   } else {
     loginBtn.classList.remove('hidden');
     logoutBtn.classList.add('hidden');
     statusButtons.classList.add('hidden');
+    document.getElementById('myInfo').innerText = 'Не авторизован';
   }
 }
 
-// === CHANGE STATUS ===
+// Изменение статуса
 window.changeStatus = async (text) => {
   if (!MY_ID) return;
 
-  let data = { status: text };
-
-  if (text === 'Учусь') {
-    data.study_start = new Date().toISOString();
-  } else {
-    data.study_start = null;
-  }
-
   await supabase.from('profiles')
-    .update(data)
+    .update({
+      status: text,
+      status_start: new Date().toISOString()
+    })
     .eq('id', MY_ID);
 
   fetchGroup();
 };
 
-// === FORMAT TIMER ===
+// Закончить сессию
+window.endSession = async () => {
+  if (!MY_ID) return;
+
+  await supabase.from('profiles')
+    .update({ status: '', status_start: null })
+    .eq('id', MY_ID);
+
+  fetchGroup();
+};
+
+// Формат времени
 function formatTime(sec) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}м ${s}с`;
 }
 
-// === LOAD USERS ===
+// Загрузка группы
 async function fetchGroup() {
   const { data } = await supabase
     .from('profiles')
@@ -201,32 +182,23 @@ async function fetchGroup() {
 
   document.getElementById('grouplist').innerHTML =
     data.map(user => {
-
       let timer = '';
-
-      if (user.status === 'Учусь' && user.study_start) {
-        const diff = Math.floor((now - new Date(user.study_start)) / 1000);
-        timer = `⏱ ${formatTime(diff)}`;
+      if (user.status && user.status_start) {
+        const diff = Math.floor((now - new Date(user.status_start)) / 1000);
+        timer = ` ⏱ ${formatTime(diff)}`;
       }
-
       return `
       <div class="user-item">
         <div class="status-dot"
-          style="background:${user.is_online ? '#22c55e' : '#9ca3af'}">
-        </div>
-
+          style="background:${user.is_online ? '#22c55e' : '#9ca3af'}"></div>
         <div>
           <div class="username">${user.username}</div>
-          <div class="status">
-            ${user.status || 'Нет статуса'} ${timer}
-          </div>
+          <div class="status">${user.status || 'Нет статуса'}${timer}</div>
         </div>
-      </div>
-      `;
+      </div>`;
     }).join('');
 }
 
-// === CLOSE TAB ===
 window.addEventListener('beforeunload', async () => {
   if (MY_ID) {
     await supabase.from('profiles')
@@ -235,7 +207,7 @@ window.addEventListener('beforeunload', async () => {
   }
 });
 
-// === START ===
+// Запуск
 getUser();
 setInterval(fetchGroup, 1000);
 </script>
