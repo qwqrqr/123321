@@ -47,9 +47,7 @@ button {
   margin-bottom: 10px;
 }
 .status-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+  width: 12px; height: 12px; border-radius: 50%;
   margin-right: 10px;
 }
 .username { font-weight: bold; }
@@ -81,15 +79,14 @@ button {
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// 💡 Вставь свои значения:
+// 🔑 Вставь свои значения
 const SUPABASE_URL = 'https://uztmyzrkkjktpqabmbqj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj';
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let MY_ID = null;
 
-// ————————— LOGIN
+// === LOGIN
 window.login = async () => {
   await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -97,21 +94,19 @@ window.login = async () => {
   });
 };
 
-// ————————— LOGOUT
+// === LOGOUT
 window.logout = async () => {
   if (MY_ID) {
-    await supabase
-      .from('profiles')
+    await supabase.from('profiles')
       .update({ is_online: false })
       .eq('id', MY_ID)
-      .select('*'); // важно для корректного REST‑запроса
+      .select('*');
   }
-
   await supabase.auth.signOut();
   location.reload();
 };
 
-// ————————— GET USER
+// === GET USER
 async function getUser() {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -121,24 +116,18 @@ async function getUser() {
 
   if (user) {
     MY_ID = user.id;
-    document.getElementById('myInfo').innerText =
-      `Вы: ${user.user_metadata.full_name}`;
-
+    document.getElementById('myInfo').innerText = `Вы: ${user.user_metadata.full_name}`;
     loginBtn.classList.add('hidden');
     logoutBtn.classList.remove('hidden');
     statusButtons.classList.remove('hidden');
 
-    // добавляем/обновляем профиль
-    await supabase
-      .from('profiles')
-      .upsert({
-        id: user.id,
-        username: user.user_metadata.full_name,
-        status: '',
-        status_start: null,
-        is_online: true
-      })
-      .select('*'); // важно для корректного REST‑запроса
+    await supabase.from('profiles').upsert({
+      id: user.id,
+      username: user.user_metadata.full_name,
+      status: '',
+      status_start: null,
+      is_online: true
+    }).select('*');
 
     fetchGroup();
   } else {
@@ -149,48 +138,43 @@ async function getUser() {
   }
 }
 
-// ————————— CHANGE STATUS
+// === CHANGE STATUS
 window.changeStatus = async (text) => {
   if (!MY_ID) return;
 
-  await supabase
-    .from('profiles')
+  await supabase.from('profiles')
     .update({
       status: text,
       status_start: new Date().toISOString()
     })
     .eq('id', MY_ID)
-    .select('*'); // ✨ добавили select
+    .select('*');
 
   fetchGroup();
 };
 
-// ————————— END SESSION
+// === END SESSION
 window.endSession = async () => {
   if (!MY_ID) return;
 
-  await supabase
-    .from('profiles')
+  await supabase.from('profiles')
     .update({ status: '', status_start: null })
     .eq('id', MY_ID)
-    .select('*'); // ✨ добавили select
+    .select('*');
 
   fetchGroup();
 };
 
-// ————————— TIMER FORMAT
+// === FORMAT TIME
 function formatTime(sec) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}м ${s}с`;
 }
 
-// ————————— FETCH GROUP
+// === FETCH GROUP
 async function fetchGroup() {
-  const { data } = await supabase
-    .from('profiles')
-    .select('*'); // ✨ всегда select('*') для REST API
-
+  const { data } = await supabase.from('profiles').select('*');
   const now = new Date();
 
   document.getElementById('grouplist').innerHTML =
@@ -202,8 +186,7 @@ async function fetchGroup() {
       }
       return `
       <div class="user-item">
-        <div class="status-dot"
-          style="background:${user.is_online ? '#22c55e' : '#9ca3af'}"></div>
+        <div class="status-dot" style="background:${user.is_online ? '#22c55e' : '#9ca3af'}"></div>
         <div>
           <div class="username">${user.username}</div>
           <div class="status">${user.status || 'Нет статуса'}${timer}</div>
@@ -212,17 +195,17 @@ async function fetchGroup() {
     }).join('');
 }
 
+// === AUTO SET OFFLINE
 window.addEventListener('beforeunload', async () => {
   if (MY_ID) {
-    await supabase
-      .from('profiles')
+    await supabase.from('profiles')
       .update({ is_online: false })
       .eq('id', MY_ID)
-      .select('*'); // ✨ тоже с select
+      .select('*');
   }
 });
 
-// ————————— RUN
+// === START
 getUser();
 setInterval(fetchGroup, 1000);
 </script>
