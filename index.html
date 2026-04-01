@@ -21,21 +21,10 @@ body {
   box-shadow: 0 10px 25px rgba(0,0,0,0.15);
 }
 
-h2 {
-  margin: 0 0 15px;
-}
+h2 { margin: 0 0 15px; }
+#myInfo { margin-bottom: 15px; color: #3b82f6; font-weight: bold; }
 
-#myInfo {
-  margin-bottom: 15px;
-  color: #3b82f6;
-  font-weight: bold;
-}
-
-.buttons {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
+.buttons { display: flex; gap: 10px; margin-bottom: 20px; }
 
 button {
   flex: 1;
@@ -102,24 +91,31 @@ button {
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
+// ----------------------------
+// Настройки Supabase
+// ----------------------------
 const supabase = createClient(
-  'https://uztmyzrkkjktpqabmbqj.supabase.co',
-  'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj'
+  'https://uztmyzrkkjktpqabmbqj.supabase.co',        // твой Supabase URL
+  'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj' // твой anon ключ
 );
 
 let MY_ID = null;
 
-// === LOGIN ===
+// ----------------------------
+// LOGIN
+// ----------------------------
 window.login = async () => {
   await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'https://qwqrqr.github.io/123321/'
+      redirectTo: 'https://qwqrqr.github.io/123321/' // твой путь GitHub Pages
     }
   });
 };
 
-// === LOGOUT ===
+// ----------------------------
+// LOGOUT
+// ----------------------------
 window.logout = async () => {
   if (MY_ID) {
     await supabase.from('profiles')
@@ -131,7 +127,9 @@ window.logout = async () => {
   location.reload();
 };
 
-// === GET USER ===
+// ----------------------------
+// GET USER
+// ----------------------------
 async function getUser() {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -157,7 +155,6 @@ async function getUser() {
     });
 
     fetchGroup();
-
   } else {
     loginBtn.classList.remove('hidden');
     logoutBtn.classList.add('hidden');
@@ -165,7 +162,9 @@ async function getUser() {
   }
 }
 
-// === CHANGE STATUS ===
+// ----------------------------
+// CHANGE STATUS
+// ----------------------------
 window.changeStatus = async (text) => {
   if (!MY_ID) return;
 
@@ -184,14 +183,18 @@ window.changeStatus = async (text) => {
   fetchGroup();
 };
 
-// === FORMAT TIMER ===
+// ----------------------------
+// FORMAT TIMER
+// ----------------------------
 function formatTime(sec) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}м ${s}с`;
 }
 
-// === LOAD USERS ===
+// ----------------------------
+// LOAD USERS
+// ----------------------------
 async function fetchGroup() {
   const { data } = await supabase
     .from('profiles')
@@ -217,16 +220,16 @@ async function fetchGroup() {
 
         <div>
           <div class="username">${user.username}</div>
-          <div class="status">
-            ${user.status || 'Нет статуса'} ${timer}
-          </div>
+          <div class="status">${user.status || 'Нет статуса'} ${timer}</div>
         </div>
       </div>
       `;
     }).join('');
 }
 
-// === CLOSE TAB ===
+// ----------------------------
+// CLOSE TAB
+// ----------------------------
 window.addEventListener('beforeunload', async () => {
   if (MY_ID) {
     await supabase.from('profiles')
@@ -235,7 +238,9 @@ window.addEventListener('beforeunload', async () => {
   }
 });
 
-// === START ===
+// ----------------------------
+// START
+// ----------------------------
 getUser();
 setInterval(fetchGroup, 1000);
 
