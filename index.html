@@ -3,198 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase Study Monitor</title>
+    <title>Realtime Monitor - Группы</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root { --p: #3b82f6; --bg: #f8fafc; --text: #1e293b; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .hidden { display: none; }
-        #chat-box { height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fff; }
-        .msg { margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; font-size: 14px; }
-        .badge { font-size: 24px; margin-right: 8px; display: inline-block; }
-        button { background: var(--p); color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        .btn-red { background: #ef4444; }
-        input { width: calc(100% - 24px); padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; }
-        .top-list { list-style: none; padding: 0; }
-        .top-list li { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
-        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+        :root {
+            --bg: #0f111a;
+            --card-bg: #1a1d29;
+            --accent: #22c55e;
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+            --gradient: linear-gradient(135deg, #3b82f6, #22c55e);
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .monitor-container {
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h1 { font-size: 24px; font-weight: 800; margin-bottom: 20px; text-align: center; }
+        h1 span { color: #3b82f6; }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: block; }
+
+        .timer-display {
+            text-align: center;
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--accent);
+            margin: 15px 0;
+        }
+        .timer-display span { font-size: 18px; color: var(--text-dim); }
+
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn {
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+        .btn-start { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid #22c55e; }
+        .btn-stop { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+        .btn-exit { background: #2d313f; color: var(--text-dim); grid-column: span 2; margin-top: 5px; }
+
+        .mini-stats { display: flex; justify-content: space-around; text-align: center; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
+        .stat-box b { display: block; font-size: 18px; }
+        .stat-box span { font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
+
+        .avatar { width: 45px; height: 45px; border-radius: 12px; background: var(--gradient); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; }
+        
+        .user-info p { margin: 0; font-size: 16px; font-weight: 600; }
+        .user-info .email-text { font-size: 12px; color: #64748b; margin-top: 2px; display: block; }
+        .user-info .status-text { font-size: 11px; color: var(--accent); margin-top: 4px; display: block; }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        #auth-screen { text-align: center; margin-top: 100px; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="auth-screen" class="card" style="max-width: 400px; margin: 80px auto; text-align: center; display: none;">
-        <h1>🎓 Study Monitor</h1>
-        <p>Войдите через Google, чтобы начать</p>
-        <button onclick="login()">Войти через Google</button>
-    </div>
-
-    <div id="app-screen" class="container" style="display: none;">
-        <div class="main-content">
-            <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: start;">
-                    <div>
-                        <h2>Привет, <span id="user-name">...</span>!</h2>
-                        <div id="achievements-list"></div>
-                        <p>⏱ Время: <strong><span id="study-time">0</span> мин.</strong></p>
-                    </div>
-                    <button class="btn-red" onclick="logout()">Выйти</button>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>Общий чат 💬</h3>
-                <div id="chat-box">Загрузка...</div>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="chat-input" placeholder="Сообщение..." onkeypress="if(event.key==='Enter') sendMsg()">
-                    <button onclick="sendMsg()">></button>
-                </div>
-            </div>
-        </div>
-
-        <div class="sidebar">
-            <div class="card">
-                <h3>Рейтинг 🏆</h3>
-                <ul id="leaderboard" class="top-list"></ul>
-            </div>
+<div class="monitor-container">
+    
+    <div id="auth-screen" class="hidden">
+        <h1>REALTIME <span>MONITOR</span></h1>
+        <div class="card">
+            <p style="color: var(--text-dim)">Войдите через Google для начала сессии</p>
+            <button class="btn btn-start" onclick="login()" style="width: 100%; margin-top: 15px;">
+                <i class="fa-brands fa-google"></i> Войти через Google
+            </button>
         </div>
     </div>
 
-    <script>
-        // --- НАСТРОЙКИ ---
-        const SB_URL = "https://uztmyzrkkjktpqabmbqj.supabase.co";
-        const SB_KEY = "sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj";
+    <div id="main-app" class="hidden">
+        <h1>Статусы <span>группы</span></h1>
+
+        <div class="card">
+            <span class="label">Текущая сессия</span>
+            <div style="text-align: center;">
+                <p id="profile-name-top" style="margin: 0; font-weight: 600; font-size: 18px;">Загрузка...</p>
+                <div class="timer-display"><i class="fa-solid fa-stopwatch-20"></i> <span id="timer-val">0</span> <span>сек.</span></div>
+                <div style="color: #fbbf24; font-size: 11px; margin-bottom: 15px; font-weight: bold;">
+                    <i class="fa-solid fa-fire"></i> В ПРОЦЕССЕ УЧЁБЫ
+                </div>
+            </div>
+            <div class="controls">
+                <button class="btn btn-start" onclick="startTimer()"><i class="fa-solid fa-play"></i> Продолжить</button>
+                <button class="btn btn-stop" onclick="stopTimer()"><i class="fa-solid fa-pause"></i> Пауза</button>
+                <button class="btn btn-exit" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Выйти из аккаунта</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <span class="label">Ваш профиль</span>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <div class="avatar" id="user-avatar">?</div>
+                <div class="user-info">
+                    <p id="user-display-name">Загрузка...</p>
+                    <span id="user-email" class="email-text">example@gmail.com</span>
+                    <span class="status-text">● В сети</span>
+                </div>
+            </div>
+            
+            <div class="mini-stats">
+                <div class="stat-box"><b id="total-time-val">0м</b><span>Учеба</span></div>
+                <div class="stat-box"><b>1</b><span>Сессия</span></div>
+                <div class="stat-box"><b>0</b><span>Сообщ.</span></div>
+                <div class="stat-box"><b>2</b><span>Достиж.</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <span class="label">Топ студентов</span>
+            <div id="leaderboard-list">
+                </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ТВОИ ДАННЫЕ SUPABASE
+    const SB_URL = "https://uztmyzrkkjktpqabmbqj.supabase.co";
+    const SB_KEY = "sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj";
+    
+    const { createClient } = supabase;
+    const sb = createClient(SB_URL, SB_KEY);
+
+    let user = null;
+    let timerInterval = null;
+    let seconds = 0;
+
+    async function init() {
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) {
+            user = session.user;
+            showApp();
+        } else {
+            document.getElementById('auth-screen').classList.remove('hidden');
+        }
+    }
+
+    async function login() {
+        await sb.auth.signInWithOAuth({ 
+            provider: 'google', 
+            options: { redirectTo: window.location.href } 
+        });
+    }
+
+    async function logout() {
+        await sb.auth.signOut();
+        window.location.reload();
+    }
+
+    async function showApp() {
+        document.getElementById('auth-screen').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+
+        // 1. Получаем email и имя из объекта пользователя Google
+        const userEmail = user.email;
+        const userName = user.user_metadata.full_name || user.email.split('@')[0];
+
+        // 2. Отображаем в интерфейсе
+        document.getElementById('user-email').innerText = userEmail;
+        document.getElementById('user-display-name').innerText = userName;
+        document.getElementById('profile-name-top').innerText = userName;
+        document.getElementById('user-avatar').innerText = userName[0].toUpperCase();
+
+        // 3. Синхронизируем с таблицей Profiles в Supabase
+        let { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
         
-        // Исправленная инициализация
-        const { createClient } = supabase;
-        const sb = createClient(SB_URL, SB_KEY);
-
-        let user = null;
-        let sessionStart = Date.now();
-
-        async function init() {
-            const { data: { session } } = await sb.auth.getSession();
-            if (session) {
-                user = session.user;
-                setupApp();
-            } else {
-                document.getElementById('auth-screen').style.display = 'block';
-            }
+        if (!profile) {
+            // Если зашел впервые - создаем запись
+            await sb.from('profiles').insert([
+                { id: user.id, username: userName, status: 'online' }
+            ]);
         }
 
-        async function login() {
-            await sb.auth.signInWithOAuth({ 
-                provider: 'google', 
-                options: { redirectTo: window.location.href } 
-            });
-        }
+        document.getElementById('total-time-val').innerText = (profile?.total_study_time || 0) + 'м';
+        loadLeaderboard();
+    }
 
-        async function logout() {
-            await sb.auth.signOut();
-            window.location.reload();
-        }
+    function startTimer() {
+        if (timerInterval) return;
+        timerInterval = setInterval(() => {
+            seconds++;
+            document.getElementById('timer-val').innerText = seconds;
+        }, 1000);
+    }
 
-        async function setupApp() {
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('app-screen').style.display = 'grid';
+    function stopTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
 
-            // Проверка профиля
-            let { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
-            
-            if (!profile) {
-                const { data: newProfile } = await sb.from('profiles').insert([
-                    { id: user.id, username: user.email.split('@')[0], status: 'online' }
-                ]).select().single();
-                profile = newProfile;
-            }
+    async function loadLeaderboard() {
+        const { data } = await sb.from('profiles').select('*').order('total_study_time', { ascending: false }).limit(5);
+        const list = document.getElementById('leaderboard-list');
+        list.innerHTML = data.map(u => `
+            <div class="leaderboard-item">
+                <div class="avatar" style="width:30px; height:30px; font-size:14px;">${u.username[0].toUpperCase()}</div>
+                <div class="user-info">
+                    <p style="font-size:13px;">${u.username}</p>
+                    <span style="font-size:10px;">Суммарно: ${u.total_study_time} мин.</span>
+                </div>
+                <div style="color: #3b82f6; font-weight: bold;">🏆</div>
+            </div>
+        `).join('');
+    }
 
-            document.getElementById('user-name').innerText = profile?.username || "Студент";
-            
-            updateUI();
-            startTracking();
-            subscribeRealtime();
-        }
-
-        function startTracking() {
-            // Ранняя пташка
-            if (new Date().getHours() < 8) award('early_bird');
-
-            setInterval(async () => {
-                // Обновляем время (простой способ через update)
-                const { data: p } = await sb.from('profiles').select('total_study_time').eq('id', user.id).single();
-                const newTime = (p?.total_study_time || 0) + 1;
-                
-                await sb.from('profiles').update({ total_study_time: newTime }).eq('id', user.id);
-                document.getElementById('study-time').innerText = newTime;
-
-                // Марафонец (через 120 мин сессии)
-                if ((Date.now() - sessionStart) / 60000 >= 120) award('marathon');
-                
-                loadLeaderboard();
-            }, 60000);
-        }
-
-        async function award(achId) {
-            const { data } = await sb.from('user_achievements').select('*').eq('user_id', user.id).eq('achievement_id', achId);
-            if (data && data.length === 0) {
-                await sb.from('user_achievements').insert([{ user_id: user.id, achievement_id: achId }]);
-                updateUI();
-            }
-        }
-
-        async function updateUI() {
-            const { data: profile } = await sb.from('profiles').select('total_study_time').eq('id', user.id).single();
-            if (profile) document.getElementById('study-time').innerText = profile.total_study_time;
-
-            const { data: achs } = await sb.from('user_achievements').select('achievements(icon, name)').eq('user_id', user.id);
-            if (achs) {
-                document.getElementById('achievements-list').innerHTML = achs.map(a => 
-                    `<span class="badge" title="${a.achievements.name}">${a.achievements.icon}</span>`
-                ).join('');
-            }
-            loadLeaderboard();
-            loadMessages();
-        }
-
-        async function loadLeaderboard() {
-            const { data } = await sb.from('profiles').select('username, total_study_time').order('total_study_time', { ascending: false }).limit(10);
-            if (data) {
-                document.getElementById('leaderboard').innerHTML = data.map(u => 
-                    `<li><span>${u.username}</span> <b>${u.total_study_time}м</b></li>`
-                ).join('');
-            }
-        }
-
-        async function sendMsg() {
-            const input = document.getElementById('chat-input');
-            if (!input.value.trim()) return;
-
-            await sb.from('messages').insert([{ user_id: user.id, content: input.value }]);
-            input.value = '';
-
-            const { count } = await sb.from('messages').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
-            if (count >= 20) award('activist');
-        }
-
-        async function loadMessages() {
-            const { data } = await sb.from('messages').select('content, profiles(username)').order('created_at', { ascending: false }).limit(20);
-            if (data) {
-                document.getElementById('chat-box').innerHTML = data.reverse().map(m => `
-                    <div class="msg"><b>${m.profiles?.username || 'Аноним'}:</b> ${m.content}</div>
-                `).join('');
-                const box = document.getElementById('chat-box');
-                box.scrollTop = box.scrollHeight;
-            }
-        }
-
-        function subscribeRealtime() {
-            sb.channel('updates')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => loadMessages())
-            .subscribe();
-        }
-
-        init();
-    </script>
+    init();
+</script>
 </body>
 </html>
