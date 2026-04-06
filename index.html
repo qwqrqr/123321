@@ -1,168 +1,204 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Study Space</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Study Monitor</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --p: #3b82f6; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .hidden { display: none; }
+        
+        /* Чат */
+        #chat-box { height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 10px; background: #fdfdfd; }
+        .msg { margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+        .msg b { color: var(--p); }
 
-<style>
-body{background:#0f172a;color:white;font-family:sans-serif;text-align:center}
-button{padding:10px;margin:5px;border:none;border-radius:10px;background:#6366f1;color:white}
-#chat-box{height:200px;overflow:auto;border:1px solid #333;margin:10px;padding:10px}
-.msg{margin:5px}
-.me{color:#22c55e}
-</style>
+        /* Достижения */
+        .badge { font-size: 28px; margin-right: 10px; display: inline-block; transition: transform 0.2s; }
+        .badge:hover { transform: scale(1.2); }
+
+        /* Кнопки */
+        button { background: var(--p); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-red { background: #ef4444; }
+        input { width: calc(100% - 24px); padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; outline: none; }
+        
+        .top-list { list-style: none; padding: 0; }
+        .top-list li { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+        .online-dot { color: #22c55e; margin-right: 5px; }
+
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+    </style>
 </head>
-
 <body>
 
-<div id="login">
-<h2>Study Space</h2>
-<button onclick="login()">Войти через Google</button>
-</div>
+    <div id="auth-screen" class="card" style="max-width: 400px; margin: 100px auto; text-align: center;">
+        <h1>🎓 Study Monitor</h1>
+        <p>Войдите, чтобы начать обучение и копить часы</p>
+        <button onclick="login()">Войти через Google</button>
+    </div>
 
-<div id="app" style="display:none">
+    <div id="app-screen" class="container hidden">
+        <div class="main-content">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div>
+                        <h2>Привет, <span id="user-name">...</span>!</h2>
+                        <div id="achievements-list" style="margin: 10px 0;"></div>
+                        <p>⏱ Время в учебе: <strong><span id="study-time">0</span> мин.</strong></p>
+                    </div>
+                    <button class="btn-red" onclick="logout()">Выйти</button>
+                </div>
+            </div>
 
-<h3 id="name"></h3>
+            <div class="card">
+                <h3>Общий чат 💬</h3>
+                <div id="chat-box">Загрузка сообщений...</div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="chat-input" placeholder="Введите сообщение..." onkeypress="if(event.key==='Enter') sendMsg()">
+                    <button onclick="sendMsg()" style="width: auto;">Отправить</button>
+                </div>
+            </div>
+        </div>
 
-<button onclick="startStudy()">Начать</button>
-<button onclick="stopStudy()">Стоп</button>
+        <div class="sidebar">
+            <div class="card">
+                <h3>Топ студентов 🏆</h3>
+                <ul id="leaderboard" class="top-list"></ul>
+            </div>
+        </div>
+    </div>
 
-<h1 id="timer"></h1>
-
-<hr>
-
-<div id="chat-box"></div>
-
-<input id="msg">
-<button onclick="send()">Отправить</button>
-
-</div>
-
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-
-const supabase = createClient(
-'https://uztmyzrkkjktpqabmbqj.supabase.co',
-'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj'
+    <script>
+        const { createClient } = supabase; 
+const _supabase = createClient(
+    'https://uztmyzrkkjktpqabmbqj.supabase.co',
+    'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj'
 );
 
-let MY_ID=null;
-let startTime=null;
-let timer=null;
-let sessionId=null;
+        let user = null;
+        let sessionStartTime = Date.now();
 
-// LOGIN
-window.login = async ()=>{
-await supabase.auth.signInWithOAuth({provider:'google'});
-};
+        // 1. Инициализация
+        async function init() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                user = session.user;
+                setupApp();
+            } else {
+                document.getElementById('auth-screen').classList.remove('hidden');
+            }
+        }
 
-// INIT
-async function init(){
-const {data:{session}}=await supabase.auth.getSession();
-if(session) onUser(session.user);
+        async function login() {
+            await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+        }
 
-supabase.auth.onAuthStateChange((e,s)=>{
-if(s) onUser(s.user);
-});
-}
+        async function logout() {
+            await supabase.auth.signOut();
+            window.location.reload();
+        }
 
-// USER
-async function onUser(user){
-MY_ID=user.id;
+        // 2. Настройка приложения
+        async function setupApp() {
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app-screen').classList.remove('hidden');
 
-document.getElementById('login').style.display='none';
-document.getElementById('app').style.display='block';
+            // Проверяем/Создаем профиль
+            const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (!profile) {
+                await supabase.from('profiles').insert([{ id: user.id, username: user.email.split('@')[0], status: 'online' }]);
+            }
 
-document.getElementById('name').innerText =
-user.user_metadata.full_name || user.email;
+            document.getElementById('user-name').innerText = profile?.username || user.email.split('@')[0];
+            
+            updateUI();
+            startTracking();
+            subscribeRealtime();
+        }
 
-// profile
-await supabase.from('profiles').upsert({
-id:MY_ID,
-username:user.user_metadata.full_name || user.email
-});
+        // 3. Трекинг времени и достижений
+        function startTracking() {
+            // Проверка "Ранняя пташка"
+            if (new Date().getHours() < 8) award('early_bird');
 
-loadChat();
-}
+            // Счетчик времени (каждую минуту)
+            setInterval(async () => {
+                const { data } = await supabase.from('profiles').select('total_study_time').eq('id', user.id).single();
+                const newTime = (data?.total_study_time || 0) + 1;
+                
+                await supabase.from('profiles').update({ total_study_time: newTime, last_seen: new Date() }).eq('id', user.id);
+                document.getElementById('study-time').innerText = newTime;
 
-// START
-window.startStudy = async ()=>{
-startTime=new Date();
+                // Проверка "Марафонец" (120 минут)
+                if ((Date.now() - sessionStartTime) / 60000 >= 120) award('marathon');
+                
+                loadLeaderboard();
+            }, 60000);
+        }
 
-const {data}=await supabase
-.from('study_sessions')
-.insert({
-user_id:MY_ID,
-start_time:startTime.toISOString()
-})
-.select()
-.single();
+        async function award(achId) {
+            const { data } = await supabase.from('user_achievements').select('*').eq('user_id', user.id).eq('achievement_id', achId);
+            if (data.length === 0) {
+                await supabase.from('user_achievements').insert([{ user_id: user.id, achievement_id: achId }]);
+                updateUI();
+            }
+        }
 
-sessionId=data.id;
+        // 4. Обновление интерфейса
+        async function updateUI() {
+            // Загрузка времени
+            const { data: profile } = await supabase.from('profiles').select('total_study_time').eq('id', user.id).single();
+            document.getElementById('study-time').innerText = profile?.total_study_time || 0;
 
-timer=setInterval(()=>{
-const now=new Date();
-const diff=now-startTime;
-const s=Math.floor(diff/1000);
-document.getElementById('timer').innerText=s+" сек";
-},1000);
-};
+            // Загрузка значков
+            const { data: achs } = await supabase.from('user_achievements').select('achievements(icon, name)').eq('user_id', user.id);
+            document.getElementById('achievements-list').innerHTML = achs.map(a => `<span class="badge" title="${a.achievements.name}">${a.achievements.icon}</span>`).join('');
+            
+            loadLeaderboard();
+            loadMessages();
+        }
 
-// STOP
-window.stopStudy = async ()=>{
-clearInterval(timer);
+        async function loadLeaderboard() {
+            const { data } = await supabase.from('profiles').select('username, total_study_time').order('total_study_time', { ascending: false }).limit(10);
+            document.getElementById('leaderboard').innerHTML = data.map(u => `<li><span>${u.username}</span> <b>${u.total_study_time}м</b></li>`).join('');
+        }
 
-const end=new Date();
-const duration=Math.floor((end-startTime)/1000);
+        // 5. Чат
+        async function sendMsg() {
+            const input = document.getElementById('chat-input');
+            if (!input.value.trim()) return;
 
-await supabase
-.from('study_sessions')
-.update({
-end_time:end.toISOString(),
-duration
-})
-.eq('id',sessionId);
+            await supabase.from('messages').insert([{ user_id: user.id, content: input.value }]);
+            input.value = '';
 
-document.getElementById('timer').innerText='';
-};
+            // Проверка "Активист"
+            const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+            if (count >= 20) award('activist');
+        }
 
-// CHAT SEND
-window.send = async ()=>{
-const input=document.getElementById('msg');
-if(!input.value) return;
+        async function loadMessages() {
+            const { data } = await supabase.from('messages').select('content, profiles(username)').order('created_at', { ascending: false }).limit(30);
+            document.getElementById('chat-box').innerHTML = data.reverse().map(m => `
+                <div class="msg"><b>${m.profiles?.username || 'Аноним'}:</b> ${m.content}</div>
+            `).join('');
+            const box = document.getElementById('chat-box');
+            box.scrollTop = box.scrollHeight;
+        }
 
-const {data:userData}=await supabase.auth.getUser();
+        function subscribeRealtime() {
+            supabase.channel('room1')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+                loadMessages();
+            })
+            .subscribe();
+        }
 
-await supabase.from('messages').insert({
-user_id:MY_ID,
-username:userData.user.email,
-text:input.value,
-created_at:new Date().toISOString()
-});
-
-input.value='';
-loadChat();
-};
-
-// LOAD CHAT
-async function loadChat(){
-const {data}=await supabase.from('messages')
-.select('*')
-.order('created_at',{ascending:false})
-.limit(20);
-
-const box=document.getElementById('chat-box');
-
-box.innerHTML=data.reverse().map(m=>`
-<div class="msg ${m.user_id===MY_ID?'me':''}">
-${m.username}: ${m.text}
-</div>
-`).join('');
-}
-
-init();
-</script>
-
+        init();
+    </script>
 </body>
 </html>
