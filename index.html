@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Study Space Monitor PRO</title>
+    <title>Study Space Ultimate</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -13,100 +13,115 @@
         }
         body { 
             font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); 
-            display: flex; justify-content: center; margin: 0; padding: 20px; min-height: 100vh;
+            margin: 0; padding: 0; display: flex; justify-content: center; height: 100vh; overflow: hidden;
         }
         .container { 
-            background: var(--bg-card); border-radius: 24px; padding: 25px; 
-            width: 100%; max-width: 440px; border: 1px solid var(--border);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            background-color: var(--card);
+            background: var(--card); width: 100%; max-width: 440px; 
+            display: flex; flex-direction: column; position: relative;
         }
 
-        /* Профиль и Значки */
-        .header-profile { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
-        .avatar { width: 50px; height: 50px; background: var(--primary); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; }
-        .badge-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
-        .badge { background: rgba(99,102,241,0.1); color: var(--primary); font-size: 0.65rem; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(99,102,241,0.3); }
+        /* КОНТЕНТ */
+        .content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 80px; display: none; }
+        .content.active { display: block; }
 
-        /* Статистика */
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.02); border-radius: 16px; border: 1px solid var(--border); }
+        /* НИЖНЕЕ МЕНЮ */
+        .nav-bar {
+            position: absolute; bottom: 0; width: 100%; height: 70px;
+            background: #161922; border-top: 1px solid var(--border);
+            display: flex; justify-content: space-around; align-items: center;
+        }
+        .nav-item { 
+            background: none; border: none; color: var(--muted); 
+            cursor: pointer; font-size: 0.7rem; font-weight: 600; 
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 1.2rem; }
+
+        /* ЧАТ */
+        #chat-box { height: 400px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; margin-bottom: 10px; border: 1px solid var(--border); }
+        .msg { margin-bottom: 10px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.05); max-width: 85%; }
+        .msg.me { background: var(--primary); margin-left: auto; }
+        .chat-input { display: flex; gap: 8px; }
+        input { flex: 1; background: #1c1f26; border: 1px solid var(--border); border-radius: 10px; color: white; padding: 10px; }
+
+        /* ОБЩИЕ СТИЛИ КАРТОЧЕК (из прошлого кода) */
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 16px; margin-bottom: 20px; }
         .stat-item { text-align: center; }
-        .stat-num { display: block; font-weight: 800; font-size: 1rem; color: var(--text); }
-        .stat-label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; }
+        .stat-num { display: block; font-weight: 800; font-size: 1rem; }
+        .stat-lab { font-size: 0.55rem; color: var(--muted); text-transform: uppercase; }
 
-        /* Таймер и Кнопки */
-        .session-box { background: rgba(255,255,255,0.03); border-radius: 20px; padding: 20px; text-align: center; border: 1px solid var(--border); margin-bottom: 20px; }
-        .timer { font-size: 2.2rem; font-weight: 800; margin: 10px 0; color: var(--success); }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        button.action { padding: 12px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; color: white; }
         
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { padding: 12px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; color: white; font-size: 0.85rem; }
-        .btn-start { background: var(--success); }
-        .btn-stop { background: var(--danger); }
-        .btn-status { background: rgba(255,255,255,0.05); border: 1px solid var(--border); }
-        .btn-full { grid-column: span 2; }
-        button:hover { opacity: 0.8; transform: translateY(-1px); }
+        .badge-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 15px; border-radius: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px; }
+        .badge-icon { font-size: 2rem; }
 
-        /* Рейтинг */
-        .user-row { display: flex; align-items: center; padding: 12px; background: rgba(255,255,255,0.01); border-radius: 15px; margin-bottom: 8px; border: 1px solid var(--border); }
-        .user-row.me { border-color: var(--primary); background: rgba(99,102,241,0.05); }
-        .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 12px; }
-        .u-info { flex: 1; }
-        .u-name { font-weight: 700; font-size: 0.9rem; }
-        .u-status { font-size: 0.75rem; color: var(--muted); }
-        .u-score { text-align: right; font-weight: 800; font-size: 0.85rem; color: var(--primary); }
+        .user-row { display: flex; align-items: center; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 14px; margin-bottom: 8px; }
+        .u-score { margin-left: auto; font-weight: 800; color: var(--primary); }
 
         .hidden { display: none; }
-        h2 { font-size: 0.8rem; text-transform: uppercase; color: var(--muted); letter-spacing: 1px; margin: 20px 0 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div id="login-ui">
-        <h1 style="text-align:center;">Study Space</h1>
-        <button class="btn-start btn-full" onclick="login()" style="background: var(--primary);">Войти через Google</button>
+    <div id="login-screen" style="padding: 40px; text-align: center;">
+        <h1 style="font-size: 2rem; margin-bottom: 30px;">Study Space</h1>
+        <button class="action" onclick="login()" style="background: var(--primary); width: 100%;">Войти через Google</button>
     </div>
 
-    <div id="main-ui" class="hidden">
-        <div class="header-profile">
-            <div class="avatar" id="myAvatar">?</div>
-            <div>
-                <div id="myName" style="font-weight:800; font-size:1.1rem;">Загрузка...</div>
-                <div id="myOnlineStatus" style="font-size:0.8rem; color: var(--success);">● В сети</div>
-            </div>
+    <div id="tab-home" class="content active">
+        <div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
+            <div id="myAvatar" style="width:45px; height:45px; background:var(--primary); border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:800;">?</div>
+            <div id="myName" style="font-weight:800;">Загрузка...</div>
         </div>
-
-        <div class="badge-container" id="myBadges">
-            </div>
 
         <div class="stats-grid">
-            <div class="stat-item"><span id="s-time" class="stat-num">0м</span><span class="stat-label">Учёба</span></div>
-            <div class="stat-item"><span id="s-sess" class="stat-num">0</span><span class="stat-label">Сессий</span></div>
-            <div class="stat-item"><span id="s-msg" class="stat-num">0</span><span class="stat-label">Сообщ.</span></div>
-            <div class="stat-item"><span id="s-ach" class="stat-num">0</span><span class="stat-label">Значки</span></div>
+            <div class="stat-item"><span id="st-time" class="stat-num">0м</span><span class="stat-lab">Учёба</span></div>
+            <div class="stat-item"><span id="st-sess" class="stat-num">0</span><span class="stat-lab">Сессий</span></div>
+            <div class="stat-item"><span id="st-msg" class="stat-num">0</span><span class="stat-lab">Посты</span></div>
+            <div class="stat-item"><span id="st-ach" class="stat-num">0</span><span class="stat-lab">Значки</span></div>
         </div>
 
-        <div class="session-box">
-            <h2>Сессия учебы</h2>
-            <div class="timer" id="displayTimer">00:00</div>
-            <div class="btn-grid">
-                <button class="btn-start" onclick="startStudy()">Продолжить</button>
-                <button class="btn-stop" onclick="stopStudy()">Завершить</button>
+        <div class="btn-grid">
+            <button class="action" style="background:var(--success);" onclick="startStudy()">▶ Начать</button>
+            <button class="action" style="background:var(--danger);" onclick="stopStudy()">🛑 Стоп</button>
+        </div>
+
+        <h3 style="font-size:0.8rem; color:var(--muted); text-transform:uppercase;">Топ студентов</h3>
+        <div id="rating-list"></div>
+    </div>
+
+    <div id="tab-chat" class="content">
+        <h2 style="margin-top:0;">💬 Общий чат</h2>
+        <div id="chat-box"></div>
+        <div class="chat-input">
+            <input type="text" id="chat-msg" placeholder="Напиши что-нибудь...">
+            <button class="action" style="background:var(--primary);" onclick="sendChat()">></button>
+        </div>
+    </div>
+
+    <div id="tab-achievements" class="content">
+        <h2 style="margin-top:0;">🏅 Мои награды</h2>
+        <div id="achievements-list">
+            <div class="badge-card">
+                <div class="badge-icon">🌅</div>
+                <div><div style="font-weight:800;">Ранняя пташка</div><div style="font-size:0.7rem; color:var(--muted);">За вход до 8:00 утра</div></div>
             </div>
         </div>
+    </div>
 
-        <h2>Твой статус</h2>
-        <div class="btn-grid" style="margin-bottom: 20px;">
-            <button class="btn-status" onclick="setStatus('В сети')">В сети</button>
-            <button class="btn-status" onclick="setStatus('Отошел')">Отошёл</button>
-            <button class="btn-status" onclick="setStatus('Занят')">Занят</button>
-            <button class="btn-status" onclick="setStatus('Не беспокоить')">DND</button>
-        </div>
-
-        <h2>🏆 Топ студентов</h2>
-        <div id="rating-list"></div>
-
-        <button class="btn-status btn-full" style="margin-top: 20px; color: var(--danger);" onclick="logout()">Выйти</button>
+    <div id="nav-bar" class="nav-bar hidden">
+        <button class="nav-item active" onclick="switchTab('tab-home', this)">
+            <span class="nav-icon">🏠</span><span>Главная</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('tab-chat', this)">
+            <span class="nav-icon">💬</span><span>Чат</span>
+        </button>
+        <button class="nav-item" onclick="switchTab('tab-achievements', this)">
+            <span class="nav-icon">🏅</span><span>Награды</span>
+        </button>
     </div>
 </div>
 
@@ -116,102 +131,118 @@
 
     let MY_ID = null;
 
+    // --- ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК ---
+    window.switchTab = (tabId, btn) => {
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+        if(tabId === 'tab-chat') loadChat();
+    };
+
     // --- АВТОРИЗАЦИЯ ---
     window.login = () => supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { queryParams: { prompt: 'select_account' }, redirectTo: window.location.href }
+        provider: 'google', options: { queryParams: { prompt: 'select_account' }, redirectTo: window.location.href }
     });
-
-    window.logout = async () => {
-        await supabase.from('profiles').update({ is_online: false }).eq('id', MY_ID);
-        await supabase.auth.signOut();
-        location.reload();
-    };
 
     async function init() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             MY_ID = user.id;
-            document.getElementById('login-ui').classList.add('hidden');
-            document.getElementById('main-ui').classList.remove('hidden');
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('nav-bar').classList.remove('hidden');
             document.getElementById('myName').innerText = user.user_metadata.full_name;
             document.getElementById('myAvatar').innerText = user.user_metadata.full_name.charAt(0);
-
+            
             await supabase.from('profiles').upsert({ id: MY_ID, username: user.user_metadata.full_name, is_online: true });
             
-            checkEarlyBird();
+            // Проверка "Ранней пташки"
+            if(new Date().getHours() < 8) await supabase.from('user_achievements').upsert({ user_id: MY_ID, achievement_name: 'Ранняя пташка 🌅' });
+
             loadData();
-            setInterval(updateTimer, 1000);
-            setInterval(loadData, 10000);
+            loadChat();
+            // Подписка на чат в реальном времени
+            supabase.channel('public:messages').on('postgres_changes', { event: 'INSERT', table: 'messages' }, loadChat).subscribe();
         }
     }
 
-    // --- ЛОГИКА СЕССИЙ ---
+    // --- ЧАТ ---
+    window.sendChat = async () => {
+        const input = document.getElementById('chat-msg');
+        if(!input.value.trim()) return;
+        
+        await supabase.from('messages').insert({ user_id: MY_ID, username: document.getElementById('myName').innerText, text: input.value });
+        
+        // Считаем сообщение для ачивки "Активист"
+        const { data: p } = await supabase.from('profiles').select('message_count').eq('id', MY_ID).single();
+        const newCount = (p.message_count || 0) + 1;
+        await supabase.from('profiles').update({ message_count: newCount }).eq('id', MY_ID);
+        
+        if(newCount >= 20) await supabase.from('user_achievements').upsert({ user_id: MY_ID, achievement_name: 'Активист 📢' });
+        
+        input.value = '';
+    };
+
+    async function loadChat() {
+        const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(30);
+        document.getElementById('chat-box').innerHTML = data.reverse().map(m => `
+            <div class="msg ${m.user_id === MY_ID ? 'me' : ''}">
+                <div style="font-size:0.6rem; opacity:0.7;">${m.username}</div>
+                <div>${m.text}</div>
+            </div>
+        `).join('');
+        const box = document.getElementById('chat-box');
+        box.scrollTop = box.scrollHeight;
+    }
+
+    // --- СЕССИИ ---
     window.startStudy = async () => {
         await supabase.from('profiles').update({ status: '📚 Учусь', status_start: new Date().toISOString() }).eq('id', MY_ID);
     };
 
     window.stopStudy = async () => {
         const { data: p } = await supabase.from('profiles').select('*').eq('id', MY_ID).single();
-        if (p.status_start) {
-            const diffMin = Math.floor((new Date() - new Date(p.status_start)) / 60000);
-            if (diffMin >= 120) awardBadge("Марафонец 🏃‍♂️");
+        if(p.status_start) {
+            const mins = Math.floor((new Date() - new Date(p.status_start)) / 60000);
+            if(mins >= 120) await supabase.from('user_achievements').upsert({ user_id: MY_ID, achievement_name: 'Марафонец 🏃‍♂️' });
             
             await supabase.from('profiles').update({ 
-                status: 'Отдыхает', status_start: null,
-                total_minutes: (p.total_minutes || 0) + diffMin,
+                status: 'Отдыхает', status_start: null, 
+                total_minutes: (p.total_minutes || 0) + mins,
                 session_count: (p.session_count || 0) + 1
             }).eq('id', MY_ID);
             loadData();
         }
     };
 
-    window.setStatus = async (s) => {
-        await supabase.from('profiles').update({ status: s, status_start: null }).eq('id', MY_ID);
-        document.getElementById('myOnlineStatus').innerText = `● ${s}`;
-    };
-
-    // --- ДОСТИЖЕНИЯ ---
-    async function awardBadge(name) {
-        await supabase.from('user_achievements').upsert({ user_id: MY_ID, achievement_name: name });
-    }
-
-    function checkEarlyBird() {
-        if (new Date().getHours() < 8) awardBadge("Ранняя пташка 🌅");
-    }
-
-    // --- ОБНОВЛЕНИЕ ЭКРАНА ---
-    async function updateTimer() {
-        const { data } = await supabase.from('profiles').select('status_start, status').eq('id', MY_ID).single();
-        if (data?.status_start && data.status === '📚 Учусь') {
-            const diff = Math.floor((new Date() - new Date(data.status_start)) / 1000);
-            const m = Math.floor(diff / 60).toString().padStart(2, '0');
-            const s = (diff % 60).toString().padStart(2, '0');
-            document.getElementById('displayTimer').innerText = `${m}:${s}`;
-        } else {
-            document.getElementById('displayTimer').innerText = '00:00';
-        }
-    }
-
+    // --- ЗАГРУЗКА ДАННЫХ ---
     async function loadData() {
         const { data: me } = await supabase.from('profiles').select('*').eq('id', MY_ID).single();
-        const { data: myAchs } = await supabase.from('user_achievements').select('*').eq('user_id', MY_ID);
+        const { data: achs } = await supabase.from('user_achievements').select('*').eq('user_id', MY_ID);
         
-        document.getElementById('s-time').innerText = (me.total_minutes || 0) + 'м';
-        document.getElementById('s-sess').innerText = me.session_count || 0;
-        document.getElementById('s-msg').innerText = me.message_count || 0;
-        document.getElementById('s-ach').innerText = myAchs.length;
-        document.getElementById('myBadges').innerHTML = myAchs.map(a => `<div class="badge">${a.achievement_name}</div>`).join('');
+        document.getElementById('st-time').innerText = (me.total_minutes || 0) + 'м';
+        document.getElementById('st-sess').innerText = me.session_count || 0;
+        document.getElementById('st-msg').innerText = me.message_count || 0;
+        document.getElementById('st-ach').innerText = achs.length;
 
+        // Список ачивок
+        document.getElementById('achievements-list').innerHTML = achs.map(a => `
+            <div class="badge-card">
+                <div class="badge-icon">${a.achievement_name.split(' ').pop()}</div>
+                <div><div style="font-weight:800;">${a.achievement_name}</div><div style="font-size:0.7rem; color:var(--muted);">Получено за успехи в учёбе</div></div>
+            </div>
+        `).join('');
+
+        // Рейтинг
         const { data: users } = await supabase.from('profiles').select('*').order('total_minutes', { ascending: false });
         document.getElementById('rating-list').innerHTML = users.map((u, i) => `
-            <div class="user-row ${u.id === MY_ID ? 'me' : ''}">
-                <div class="dot" style="background:${u.is_online ? '#10b981' : '#334155'}"></div>
+            <div class="user-row">
+                <div style="font-weight:800; margin-right:10px; width:20px; color:var(--muted);">#${i+1}</div>
                 <div class="u-info">
-                    <div class="u-name">${u.username} ${i === 0 ? '🏆' : ''}</div>
-                    <div class="u-status">${u.status || 'Offline'}</div>
+                    <div class="u-name">${u.username} ${i === 0 ? '👑' : ''}</div>
+                    <div style="font-size:0.7rem; color:var(--muted);">${u.status || 'Offline'}</div>
                 </div>
-                <div class="u-score">${u.total_minutes || 0} мин</div>
+                <div class="u-score">${u.total_minutes || 0}м</div>
             </div>
         `).join('');
     }
