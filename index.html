@@ -1,227 +1,142 @@
 <!DOCTYPE html>
-
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Study Space Ultimate</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<title>Study Space</title>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-
-:root{
---bg:#090a10;
---card:#11131a;
---primary:#6366f1;
---primary-dark:#4f46e5;
---success:#10b981;
---danger:#ef4444;
---text:#f8fafc;
---muted:#94a3b8;
---border:rgba(255,255,255,0.08);
-}
-
-body{
-font-family:'Inter',sans-serif;
-background:radial-gradient(circle at 10% 20%, #0f1119, #090a10);
-color:var(--text);
-display:flex;
-justify-content:center;
-min-height:100vh;
-}
-
-.container{
-background:var(--card);
-width:100%;
-max-width:450px;
-min-height:100vh;
-display:flex;
-flex-direction:column;
-}
-
-button{
-border:none;
-cursor:pointer;
-}
-
-.content{
-flex:1;
-padding:20px;
-padding-bottom:90px;
-display:none;
-}
-.content.active{display:block;}
-
-.nav-bar{
-position:fixed;
-bottom:0;
-left:50%;
-transform:translateX(-50%);
-width:100%;
-max-width:450px;
-background:#161922;
-display:flex;
-justify-content:space-around;
-padding:10px 0;
-}
-
-.nav-item{
-background:none;
-color:var(--muted);
-display:flex;
-flex-direction:column;
-align-items:center;
-font-size:12px;
-}
-.nav-item.active{color:var(--primary);}
-
-#chat-box{
-height:400px;
-overflow-y:auto;
-background:#0003;
-padding:10px;
-border-radius:15px;
-scroll-behavior:smooth;
-}
-
-.msg{
-padding:8px 12px;
-margin-bottom:10px;
-background:#fff1;
-border-radius:15px;
-max-width:80%;
-}
-.msg.me{
-background:var(--primary);
-margin-left:auto;
-}
-
-.chat-input{
-display:flex;
-gap:10px;
-margin-top:10px;
-}
-.chat-input input{
-flex:1;
-padding:10px;
-border-radius:20px;
-background:#1c1f26;
-color:white;
-border:1px solid var(--border);
-}
-.chat-input input::placeholder{color:#6b7280;}
-
-.chat-input button{
-background:var(--primary);
-padding:10px 16px;
-border-radius:20px;
-color:white;
-}
-
-#activeStudyTimer{display:none;}
-
+body{background:#0f172a;color:white;font-family:sans-serif;text-align:center}
+button{padding:10px;margin:5px;border:none;border-radius:10px;background:#6366f1;color:white}
+#chat-box{height:200px;overflow:auto;border:1px solid #333;margin:10px;padding:10px}
+.msg{margin:5px}
+.me{color:#22c55e}
 </style>
-
 </head>
 
 <body>
 
-<div class="container">
-
-<div id="login-screen" style="padding:40px;text-align:center;">
-<h1>Study Space</h1>
-<button onclick="login()" style="margin-top:20px;background:var(--primary);padding:12px 20px;border-radius:10px;color:white;">
-Войти через Google
-</button>
+<div id="login">
+<h2>Study Space</h2>
+<button onclick="login()">Войти через Google</button>
 </div>
 
-<div id="tab-home" class="content">
-<h2 id="myName">...</h2>
-<div id="myStatus">😴</div>
+<div id="app" style="display:none">
 
-<button onclick="startStudy()">Начать</button> <button onclick="stopStudy()">Стоп</button>
+<h3 id="name"></h3>
 
-<div id="activeStudyTimer"></div>
-</div>
+<button onclick="startStudy()">Начать</button>
+<button onclick="stopStudy()">Стоп</button>
 
-<div id="tab-chat" class="content">
+<h1 id="timer"></h1>
+
+<hr>
+
 <div id="chat-box"></div>
 
-<div class="chat-input">
-<input id="chat-msg">
-<button onclick="sendChat()">Отправить</button>
-</div>
-</div>
-
-<div id="nav-bar" class="nav-bar hidden">
-<button class="nav-item active" onclick="switchTab('tab-home',this)">🏠</button>
-<button class="nav-item" onclick="switchTab('tab-chat',this)">💬</button>
-</div>
+<input id="msg">
+<button onclick="send()">Отправить</button>
 
 </div>
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-const supabase=createClient(
+const supabase = createClient(
 'https://uztmyzrkkjktpqabmbqj.supabase.co',
 'sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj'
 );
 
 let MY_ID=null;
-let studyStartTime=null;
+let startTime=null;
 let timer=null;
+let sessionId=null;
 
-window.switchTab=(id,btn)=>{
-document.querySelectorAll('.content').forEach(e=>e.classList.remove('active'));
-document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
-document.getElementById(id).classList.add('active');
-btn.classList.add('active');
-if(id==='tab-chat')loadChat();
-};
-
-window.login=async()=>{
+// LOGIN
+window.login = async ()=>{
 await supabase.auth.signInWithOAuth({provider:'google'});
 };
 
+// INIT
 async function init(){
 const {data:{session}}=await supabase.auth.getSession();
-if(session)onAuth(session.user);
+if(session) onUser(session.user);
 
 supabase.auth.onAuthStateChange((e,s)=>{
-if(s)onAuth(s.user);
+if(s) onUser(s.user);
 });
 }
 
-async function onAuth(user){
+// USER
+async function onUser(user){
 MY_ID=user.id;
 
-document.getElementById('login-screen').style.display='none';
-document.getElementById('nav-bar').classList.remove('hidden');
-document.getElementById('tab-home').classList.add('active');
+document.getElementById('login').style.display='none';
+document.getElementById('app').style.display='block';
 
-document.getElementById('myName').innerText=user.user_metadata.full_name||user.email;
+document.getElementById('name').innerText =
+user.user_metadata.full_name || user.email;
 
+// profile
 await supabase.from('profiles').upsert({
 id:MY_ID,
-username:user.user_metadata.full_name||user.email
+username:user.user_metadata.full_name || user.email
 });
 
 loadChat();
 }
 
-window.sendChat=async()=>{
-const input=document.getElementById('chat-msg');
-if(!input.value.trim())return;
+// START
+window.startStudy = async ()=>{
+startTime=new Date();
+
+const {data}=await supabase
+.from('study_sessions')
+.insert({
+user_id:MY_ID,
+start_time:startTime.toISOString()
+})
+.select()
+.single();
+
+sessionId=data.id;
+
+timer=setInterval(()=>{
+const now=new Date();
+const diff=now-startTime;
+const s=Math.floor(diff/1000);
+document.getElementById('timer').innerText=s+" сек";
+},1000);
+};
+
+// STOP
+window.stopStudy = async ()=>{
+clearInterval(timer);
+
+const end=new Date();
+const duration=Math.floor((end-startTime)/1000);
+
+await supabase
+.from('study_sessions')
+.update({
+end_time:end.toISOString(),
+duration
+})
+.eq('id',sessionId);
+
+document.getElementById('timer').innerText='';
+};
+
+// CHAT SEND
+window.send = async ()=>{
+const input=document.getElementById('msg');
+if(!input.value) return;
 
 const {data:userData}=await supabase.auth.getUser();
-const username=userData?.user?.user_metadata?.full_name||userData?.user?.email||"User";
 
 await supabase.from('messages').insert({
 user_id:MY_ID,
-username,
+username:userData.user.email,
 text:input.value,
 created_at:new Date().toISOString()
 });
@@ -230,40 +145,21 @@ input.value='';
 loadChat();
 };
 
+// LOAD CHAT
 async function loadChat(){
 const {data}=await supabase.from('messages')
 .select('*')
 .order('created_at',{ascending:false})
-.limit(50);
+.limit(20);
 
 const box=document.getElementById('chat-box');
+
 box.innerHTML=data.reverse().map(m=>`
 <div class="msg ${m.user_id===MY_ID?'me':''}">
-${m.username}<br>${m.text}
-</div>`).join('');
-
-box.scrollTop=box.scrollHeight;
+${m.username}: ${m.text}
+</div>
+`).join('');
 }
-
-window.startStudy=()=>{
-studyStartTime=new Date();
-document.getElementById('activeStudyTimer').style.display='block';
-
-timer=setInterval(()=>{
-const now=new Date();
-const diff=now-studyStartTime;
-
-const m=Math.floor(diff/60000);
-const s=Math.floor((diff%60000)/1000);
-
-document.getElementById('activeStudyTimer').innerText=`${m}м ${s}с`;
-},1000);
-};
-
-window.stopStudy=()=>{
-clearInterval(timer);
-document.getElementById('activeStudyTimer').style.display='none';
-};
 
 init();
 </script>
