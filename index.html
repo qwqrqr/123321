@@ -2,86 +2,67 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Study App | Tabs</title>
+<title>Монитор статусов + Чат</title>
 <style>
-    :root {
-        --primary: #6366f1; --bg: #f3f4f6; --card: #ffffff;
-    }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; }
-    
-    .main-container { width: 100%; max-width: 500px; height: 100vh; display: flex; flex-direction: column; background: var(--card); }
+/* ТВОЙ ОРИГИНАЛЬНЫЙ СТИЛЬ */
+body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f5f5f5; display: flex; justify-content: center; padding: 40px 0; }
+.container { background: #fff; border-radius: 20px; padding: 25px; width: 420px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+h2 { margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 1.2rem; }
+#myInfo { margin-bottom: 10px; color: #3b82f6; font-weight: bold; }
 
-    /* Шапка с профилем */
-    .header { padding: 20px; border-bottom: 1px solid #eee; text-align: center; }
-    #myInfo { font-weight: bold; color: var(--primary); margin-bottom: 10px; }
+/* ДОСТИЖЕНИЯ (Значки) */
+.badge-list { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; }
+.badge { background: #f0fdf4; color: #16a34a; font-size: 11px; padding: 3px 8px; border-radius: 12px; border: 1px solid #bbf7d0; }
 
-    /* Навигация (3 кнопки) */
-    .nav-tabs { display: flex; border-bottom: 1px solid #eee; background: #fafafa; }
-    .nav-btn { flex: 1; padding: 15px; border: none; background: none; cursor: pointer; font-weight: 600; color: #64748b; transition: 0.3s; }
-    .nav-btn.active { color: var(--primary); border-bottom: 3px solid var(--primary); background: #fff; }
+button { flex: 1; padding: 10px; border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: bold; }
+.buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; }
+.green { background: #22c55e; } .orange { background: #f97316; } .red { background: #ef4444; } .blue { background: #3b82f6; } .yellow { background: #FACC15; color: #111; } .black { background: #111827; }
 
-    /* Контент вкладок */
-    .tab-content { flex: 1; overflow-y: auto; padding: 20px; display: none; }
-    .tab-content.active { display: block; }
+#loginBtn { background: #2563eb; width: 100%; margin-bottom: 10px; }
+#logoutBtn { background: #ef4444; width: 100%; margin-bottom: 10px; margin-top: 10px; }
+.hidden { display: none; }
 
-    /* Стили для вкладок */
-    .user-card { display: flex; align-items: center; padding: 12px; background: #f8fafc; border-radius: 12px; margin-bottom: 10px; }
-    .badge-item { display: inline-block; padding: 10px; background: #eef2ff; border-radius: 10px; margin: 5px; border: 1px solid #c7d2fe; text-align: center; min-width: 100px; }
-    
-    /* Кнопки статуса внутри профиля */
-    .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-    .btn-s { padding: 8px; border-radius: 8px; border: 1px solid #ddd; cursor: pointer; background: white; }
-    
-    /* Чат */
-    #chat-box { height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; border: 1px solid #f0f0f0; padding: 10px; border-radius: 10px; }
-    .msg { padding: 8px 12px; border-radius: 10px; background: #f1f5f9; align-self: flex-start; max-width: 80%; }
-    .msg.mine { background: var(--primary); color: white; align-self: flex-end; }
-    
-    .hidden { display: none; }
+.user-item { display: flex; align-items: center; background: #f9fafb; padding: 10px; border-radius: 10px; margin-bottom: 10px; }
+.status-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; }
+.username { font-weight: bold; display: flex; align-items: center; gap: 5px; }
+.status { font-size: 0.85rem; color: gray; }
+.msg-count { margin-left: auto; font-size: 0.75rem; color: #3b82f6; font-weight: bold; }
+
+/* ЧАТ СТИЛЬ */
+#chatBox { height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin-bottom: 10px; background: #fafafa; font-size: 0.9rem; }
+.chat-input-row { display: flex; gap: 5px; }
+.chat-input-row input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
 </style>
 </head>
 <body>
 
-<div class="main-container">
-    <div class="header">
-        <div id="myInfo">Авторизуйтесь через Google</div>
-        <button id="loginBtn" onclick="login()" style="padding: 8px 20px; border-radius: 20px; border: none; background: #4285f4; color: white; cursor: pointer;">Войти</button>
-        
-        <div id="statusControl" class="hidden">
-            <div class="status-grid">
-                <button class="btn-s" onclick="changeStatus('📚 Учусь')">📚 Учусь</button>
-                <button class="btn-s" onclick="changeStatus('☕ Кофе')">☕ Кофе</button>
-                <button class="btn-s" onclick="changeStatus('🎮 В игре')">🎮 В игре</button>
-                <button class="btn-s" onclick="endSession()">🛑 Стоп</button>
-            </div>
-        </div>
-    </div>
+<div class="container">
+  <h2>👤 Мой профиль</h2>
+  <div id="myInfo">Не авторизован</div>
+  <div id="myBadges" class="badge-list"></div>
 
-    <div class="nav-tabs">
-        <button class="nav-btn active" onclick="openTab(event, 'chat-tab')">💬 Чат</button>
-        <button class="nav-btn" onclick="openTab(event, 'rating-tab')">🏆 Рейтинг</button>
-        <button class="nav-btn" onclick="openTab(event, 'achievements-tab')">🏅 Награды</button>
-    </div>
+  <div class="buttons hidden" id="statusButtons">
+    <button class="green" onclick="changeStatus('Учусь')">Учусь</button>
+    <button class="orange" onclick="changeStatus('Кофе')">Кофе</button>
+    <button class="red" onclick="changeStatus('В игре')">В игре</button>
+    <button class="blue" onclick="changeStatus('Дома')">Дома</button>
+    <button class="yellow" onclick="changeStatus('Перерыв')">Перерыв</button>
+    <button class="black" onclick="endSession()">Закончить</button>
+  </div>
 
-    <div id="chat-tab" class="tab-content active">
-        <div id="chat-box"></div>
-        <div style="display:flex; gap: 5px;">
-            <input type="text" id="chat-input" style="flex:1; padding:10px; border-radius:10px; border:1px solid #ddd;" placeholder="Сообщение...">
-            <button onclick="sendMessage()" style="padding:10px; border-radius:10px; background:var(--primary); color:white; border:none;">-></button>
-        </div>
-    </div>
+  <button id="loginBtn" onclick="login()">Войти через Google</button>
 
-    <div id="rating-tab" class="tab-content">
-        <h3>Топ по сообщениям</h3>
-        <div id="rating-list">Загрузка...</div>
-    </div>
+  <h2>💬 Общий чат</h2>
+  <div id="chatBox">Загрузка сообщений...</div>
+  <div id="chatInputArea" class="chat-input-row hidden">
+    <input type="text" id="msgText" placeholder="Сообщение...">
+    <button class="blue" style="flex:none" onclick="sendMsg()">></button>
+  </div>
 
-    <div id="achievements-tab" class="tab-content">
-        <h3>Мои значки</h3>
-        <div id="my-badges-list" style="display: flex; flex-wrap: wrap; justify-content: center;">
-            </div>
-    </div>
+  <h2>🏆 Рейтинг группы</h2>
+  <div id="grouplist">Загрузка...</div>
+
+  <button id="logoutBtn" class="hidden" onclick="logout()">Выйти</button>
 </div>
 
 <script type="module">
@@ -94,107 +75,129 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 let MY_ID = null;
 let MY_NAME = "";
 
-// ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК
-window.openTab = (evt, tabName) => {
-    const contents = document.getElementsByClassName("tab-content");
-    for (let content of contents) content.classList.remove("active");
-    
-    const buttons = document.getElementsByClassName("nav-btn");
-    for (let btn of buttons) btn.classList.remove("active");
-
-    document.getElementById(tabName).classList.add("active");
-    evt.currentTarget.classList.add("active");
-
-    if(tabName === 'rating-tab') fetchRating();
-    if(tabName === 'achievements-tab') fetchMyBadges();
-}
-
-// ЛОГИКА АВТОРИЗАЦИИ И ДАННЫХ
-async function init() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-        MY_ID = user.id;
-        MY_NAME = user.user_metadata.full_name;
-        document.getElementById('myInfo').innerText = `Привет, ${MY_NAME}!`;
-        document.getElementById('loginBtn').classList.add('hidden');
-        document.getElementById('statusControl').classList.remove('hidden');
-        
-        await supabase.from('profiles').upsert({ id: MY_ID, username: MY_NAME, is_online: true });
-        loadChat();
-        listenRealtime();
-    }
-}
-
-// ЧАТ
-window.sendMessage = async () => {
-    const input = document.getElementById('chat-input');
-    if (!input.value.trim()) return;
-    await supabase.from('messages').insert({ user_id: MY_ID, username: MY_NAME, text: input.value });
-    
-    // Плюс 1 к рейтингу
-    const { data: p } = await supabase.from('profiles').select('message_count').eq('id', MY_ID).single();
-    await supabase.from('profiles').update({ message_count: (p.message_count || 0) + 1 }).eq('id', MY_ID);
-    
-    input.value = '';
+// === LOGIN
+window.login = async () => {
+  await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
 };
 
-async function loadChat() {
-    const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(20);
-    const box = document.getElementById('chat-box');
-    box.innerHTML = data.reverse().map(m => `
-        <div class="msg ${m.user_id === MY_ID ? 'mine' : ''}">
-            <div style="font-size:10px; font-weight:bold;">${m.username}</div>
-            ${m.text}
-        </div>
-    `).join('');
-    box.scrollTop = box.scrollHeight;
+// === LOGOUT
+window.logout = async () => {
+  if (MY_ID) await supabase.from('profiles').update({ is_online: false }).eq('id', MY_ID);
+  await supabase.auth.signOut();
+  location.reload();
+};
+
+// === GET USER
+async function getUser() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    MY_ID = user.id;
+    MY_NAME = user.user_metadata.full_name;
+    document.getElementById('myInfo').innerText = `Вы: ${MY_NAME}`;
+    document.getElementById('loginBtn').classList.add('hidden');
+    document.getElementById('logoutBtn').classList.remove('hidden');
+    document.getElementById('statusButtons').classList.remove('hidden');
+    document.getElementById('chatInputArea').classList.remove('hidden');
+
+    await supabase.from('profiles').upsert({ id: MY_ID, username: MY_NAME, is_online: true });
+    
+    checkEarlyBird(); // Проверка ачивки при входе
+    fetchGroup();
+    fetchChat();
+    fetchMyBadges();
+    
+    // Подписка на обновления
+    supabase.channel('any').on('postgres_changes', { event: '*', table: '*' }, () => {
+      fetchGroup();
+      fetchChat();
+    }).subscribe();
+  }
 }
 
-// РЕЙТИНГ
-async function fetchRating() {
-    const { data } = await supabase.from('profiles').select('*').order('message_count', { ascending: false });
-    document.getElementById('rating-list').innerHTML = data.map((u, i) => `
-        <div class="user-card">
-            <span style="margin-right:10px; font-weight:bold;">#${i+1}</span>
-            <div style="flex:1"><b>${u.username}</b><br><small>${u.status || 'Отдыхает'}</small></div>
-            <div style="color:var(--primary)">${u.message_count || 0} сообщений</div>
-        </div>
-    `).join('');
+// === ЧАТ
+window.sendMsg = async () => {
+  const input = document.getElementById('msgText');
+  if (!input.value.trim()) return;
+
+  await supabase.from('messages').insert({ user_id: MY_ID, username: MY_NAME, text: input.value });
+  
+  // Обновляем счетчик сообщений для рейтинга
+  const { data: p } = await supabase.from('profiles').select('message_count').eq('id', MY_ID).single();
+  const newCount = (p.message_count || 0) + 1;
+  await supabase.from('profiles').update({ message_count: newCount }).eq('id', MY_ID);
+  
+  if (newCount >= 20) awardBadge("Активист 📢");
+  input.value = '';
+};
+
+async function fetchChat() {
+  const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(20);
+  document.getElementById('chatBox').innerHTML = data.reverse().map(m => `
+    <div style="margin-bottom:5px"><b>${m.username}:</b> ${m.text}</div>
+  `).join('');
 }
 
-// ДОСТИЖЕНИЯ
+// === ДОСТИЖЕНИЯ
+async function awardBadge(name) {
+  await supabase.from('user_achievements').upsert({ user_id: MY_ID, achievement_name: name });
+  fetchMyBadges();
+}
+
 async function fetchMyBadges() {
-    const { data } = await supabase.from('user_achievements').select('*').eq('user_id', MY_ID);
-    const list = document.getElementById('my-badges-list');
-    if (data.length === 0) {
-        list.innerHTML = "<p>У вас пока нет наград. Будьте активнее!</p>";
-    } else {
-        list.innerHTML = data.map(a => `
-            <div class="badge-item">
-                <div style="font-size: 24px;">🏅</div>
-                <div style="font-size: 12px; font-weight:bold;">${a.achievement_name}</div>
-            </div>
-        `).join('');
-    }
+  const { data } = await supabase.from('user_achievements').select('*').eq('user_id', MY_ID);
+  document.getElementById('myBadges').innerHTML = data.map(a => `<span class="badge">${a.achievement_name}</span>`).join('');
 }
 
-// ОБЩИЕ ФУНКЦИИ
-window.changeStatus = async (status) => {
-    await supabase.from('profiles').update({ status, status_start: new Date().toISOString() }).eq('id', MY_ID);
+function checkEarlyBird() {
+  const hr = new Date().getHours();
+  if (hr < 8) awardBadge("Ранняя пташка 🌅");
+}
+
+// === ТВОИ ОРИГИНАЛЬНЫЕ ФУНКЦИИ
+window.changeStatus = async (text) => {
+  await supabase.from('profiles').update({ status: text, status_start: new Date().toISOString() }).eq('id', MY_ID);
 };
 
 window.endSession = async () => {
-    await supabase.from('profiles').update({ status: '', status_start: null }).eq('id', MY_ID);
+  await supabase.from('profiles').update({ status: '', status_start: null }).eq('id', MY_ID);
 };
 
-function listenRealtime() {
-    supabase.channel('room1').on('postgres_changes', { event: 'INSERT', table: 'messages' }, loadChat).subscribe();
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}м ${s}с`;
 }
 
-window.login = () => supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.href } });
+// === FETCH GROUP (Теперь с рейтингом)
+async function fetchGroup() {
+  const { data: users } = await supabase.from('profiles').select('*').order('message_count', { ascending: false });
+  const { data: achs } = await supabase.from('user_achievements').select('*');
+  const now = new Date();
 
-init();
+  document.getElementById('grouplist').innerHTML = users.map(user => {
+    let timer = '';
+    if (user.status && user.status_start) {
+      const diff = Math.floor((now - new Date(user.status_start)) / 1000);
+      timer = ` ⏱ ${formatTime(diff)}`;
+    }
+    
+    // Собираем значки этого пользователя
+    const userBadges = achs.filter(a => a.user_id === user.id).map(a => `<span style="font-size:10px">${a.achievement_name.split(' ')[1] || ''}</span>`).join('');
+
+    return `
+      <div class="user-item">
+        <div class="status-dot" style="background:${user.is_online ? '#22c55e' : '#9ca3af'}"></div>
+        <div>
+          <div class="username">${user.username} ${userBadges}</div>
+          <div class="status">${user.status || 'Нет статуса'}${timer}</div>
+        </div>
+        <div class="msg-count">💬 ${user.message_count || 0}</div>
+      </div>`;
+  }).join('');
+}
+
+getUser();
+setInterval(fetchGroup, 5000);
 </script>
-
 </body>
 </html>
