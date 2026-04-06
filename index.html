@@ -3,243 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Realtime Monitor - Группы</title>
+    <title>Realtime Monitor Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        :root {
-            --bg: #0f111a;
-            --card-bg: #1a1d29;
-            --accent: #22c55e;
-            --text-main: #ffffff;
-            --text-dim: #94a3b8;
-            --gradient: linear-gradient(135deg, #3b82f6, #22c55e);
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .monitor-container {
-            width: 100%;
-            max-width: 450px;
-        }
-
-        h1 { font-size: 24px; font-weight: 800; margin-bottom: 20px; text-align: center; }
-        h1 span { color: #3b82f6; }
-
-        .card {
-            background: var(--card-bg);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 15px;
-        }
-
-        .label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; display: block; }
-
-        .timer-display {
-            text-align: center;
-            font-size: 48px;
-            font-weight: 800;
-            color: var(--accent);
-            margin: 15px 0;
-        }
-        .timer-display span { font-size: 18px; color: var(--text-dim); }
-
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn {
-            padding: 12px;
-            border-radius: 10px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: 0.2s;
-        }
-        .btn-start { background: rgba(34, 197, 94, 0.2); color: #22c55e; border: 1px solid #22c55e; }
-        .btn-stop { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
-        .btn-exit { background: #2d313f; color: var(--text-dim); grid-column: span 2; margin-top: 5px; }
-
-        .mini-stats { display: flex; justify-content: space-around; text-align: center; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
-        .stat-box b { display: block; font-size: 18px; }
-        .stat-box span { font-size: 10px; color: var(--text-dim); text-transform: uppercase; }
-
-        .avatar { width: 45px; height: 45px; border-radius: 12px; background: var(--gradient); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; }
+        :root { --bg: #0f111a; --card: #1a1d29; --p: #3b82f6; --acc: #22c55e; --text: #ffffff; --dim: #94a3b8; }
+        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .wrapper { width: 100%; max-width: 420px; }
+        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        .label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: block; }
         
-        .user-info p { margin: 0; font-size: 16px; font-weight: 600; }
-        .user-info .email-text { font-size: 12px; color: #64748b; margin-top: 2px; display: block; }
-        .user-info .status-text { font-size: 11px; color: var(--accent); margin-top: 4px; display: block; }
+        /* Таймер */
+        .timer-big { text-align: center; font-size: 54px; font-weight: 800; color: var(--acc); margin: 10px 0; }
+        .timer-big span { font-size: 20px; color: var(--dim); }
+        
+        /* Кнопки управления */
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { padding: 12px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
+        .btn-play { background: rgba(34,197,94,0.15); color: var(--acc); border: 1px solid var(--acc); }
+        .btn-stop { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid #ef4444; }
+        .btn-exit { background: #2d313f; color: var(--dim); grid-column: span 2; margin-top: 5px; }
 
-        .leaderboard-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
+        /* Статусы-переключатели */
+        .status-select { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        .st-btn { background: #242838; padding: 10px; border-radius: 12px; font-size: 13px; border: 1px solid transparent; cursor: pointer; color: var(--dim); text-align: left; }
+        .st-btn.active { border-color: var(--p); background: rgba(59,130,246,0.1); color: #fff; }
 
-        #auth-screen { text-align: center; margin-top: 100px; }
+        /* Вкладки (Tabs) */
+        .tabs-nav { display: flex; background: #141721; border-radius: 12px; padding: 5px; margin-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: none; color: var(--dim); cursor: pointer; font-size: 12px; font-weight: 600; border-radius: 8px; transition: 0.2s; }
+        .tab-btn.active { background: #2d313f; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+        /* Чат */
+        #chat-box { height: 200px; overflow-y: auto; font-size: 13px; margin-bottom: 10px; padding-right: 5px; }
+        .chat-msg { margin-bottom: 8px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px; }
+        .chat-msg b { color: var(--p); font-size: 11px; display: block; }
+
+        /* Достижения */
+        .ach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .ach-card { background: #242838; padding: 12px; border-radius: 12px; position: relative; border: 1px solid rgba(255,255,255,0.05); }
+        .ach-card.locked { opacity: 0.4; filter: grayscale(1); }
+        .ach-card i { font-size: 20px; color: #fbbf24; margin-bottom: 8px; display: block; }
+        .ach-card b { font-size: 12px; display: block; }
+        .ach-card span { font-size: 10px; color: var(--dim); }
+
         .hidden { display: none !important; }
+        .avatar { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #3b82f6, #22c55e); display: flex; align-items: center; justify-content: center; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="monitor-container">
-    
-    <div id="auth-screen" class="hidden">
+<div class="wrapper">
+    <div id="auth-screen" class="card" style="text-align: center; margin-top: 100px;">
         <h1>REALTIME <span>MONITOR</span></h1>
-        <div class="card">
-            <p style="color: var(--text-dim)">Войдите через Google для начала сессии</p>
-            <button class="btn btn-start" onclick="login()" style="width: 100%; margin-top: 15px;">
-                <i class="fa-brands fa-google"></i> Войти через Google
-            </button>
-        </div>
+        <button class="btn btn-play" onclick="login()" style="width: 100%;">Войти через Google</button>
     </div>
 
     <div id="main-app" class="hidden">
-        <h1>Статусы <span>группы</span></h1>
-
+        
         <div class="card">
-            <span class="label">Текущая сессия</span>
+            <span class="label">Сессия учёбы</span>
             <div style="text-align: center;">
-                <p id="profile-name-top" style="margin: 0; font-weight: 600; font-size: 18px;">Загрузка...</p>
-                <div class="timer-display"><i class="fa-solid fa-stopwatch-20"></i> <span id="timer-val">0</span> <span>сек.</span></div>
-                <div style="color: #fbbf24; font-size: 11px; margin-bottom: 15px; font-weight: bold;">
-                    <i class="fa-solid fa-fire"></i> В ПРОЦЕССЕ УЧЁБЫ
-                </div>
+                <p id="user-name-top" style="margin: 0; font-weight: 700;"></p>
+                <div class="timer-big"><span id="timer-val">0</span> <span>сек.</span></div>
+                <div id="current-mode" style="color: #fbbf24; font-size: 11px; margin-bottom: 15px;">☕ ПЕРЕРЫВ</div>
             </div>
-            <div class="controls">
-                <button class="btn btn-start" onclick="startTimer()"><i class="fa-solid fa-play"></i> Продолжить</button>
-                <button class="btn btn-stop" onclick="stopTimer()"><i class="fa-solid fa-pause"></i> Пауза</button>
-                <button class="btn btn-exit" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> Выйти из аккаунта</button>
+            <div class="btn-grid">
+                <button class="btn btn-play" onclick="startTimer()"><i class="fa-solid fa-play"></i> Учиться</button>
+                <button class="btn btn-stop" onclick="saveTimer()"><i class="fa-solid fa-check"></i> Завершить</button>
+                <button class="btn btn-exit" onclick="logout()">Выход</button>
             </div>
         </div>
 
         <div class="card">
-            <span class="label">Ваш профиль</span>
-            <div style="display: flex; gap: 15px; align-items: center;">
-                <div class="avatar" id="user-avatar">?</div>
-                <div class="user-info">
-                    <p id="user-display-name">Загрузка...</p>
-                    <span id="user-email" class="email-text">example@gmail.com</span>
-                    <span class="status-text">● В сети</span>
+            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 15px;">
+                <div class="avatar" id="user-ava">?</div>
+                <div>
+                    <b id="user-full-name" style="font-size: 15px;"></b><br>
+                    <span id="user-email-text" style="font-size: 11px; color: var(--dim);"></span>
                 </div>
             </div>
-            
-            <div class="mini-stats">
-                <div class="stat-box"><b id="total-time-val">0м</b><span>Учеба</span></div>
-                <div class="stat-box"><b>1</b><span>Сессия</span></div>
-                <div class="stat-box"><b>0</b><span>Сообщ.</span></div>
-                <div class="stat-box"><b>2</b><span>Достиж.</span></div>
+            <div class="status-select">
+                <button class="st-btn active" onclick="setStatus(this, 'В сети')">🟢 В сети</button>
+                <button class="st-btn" onclick="setStatus(this, 'Отошёл')">🟡 Отошёл</button>
+                <button class="st-btn" onclick="setStatus(this, 'Занят')">🔴 Занят</button>
+                <button class="st-btn" onclick="setStatus(this, 'Кофе')">☕ Кофе</button>
             </div>
         </div>
 
-        <div class="card">
+        <div class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab(this, 'tab-chat')"><i class="fa-solid fa-users"></i> Чат</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-rank')"><i class="fa-solid fa-trophy"></i> Рейтинг</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-ach')"><i class="fa-solid fa-medal"></i> Достижения</button>
+        </div>
+
+        <div id="tab-chat" class="tab-content card">
+            <div id="chat-box"></div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="chat-in" style="flex:1; background: #0f111a; border: 1px solid #2d313f; color: white; padding: 10px; border-radius: 10px;" placeholder="Сообщение...">
+                <button onclick="sendMsg()" class="btn btn-play" style="padding: 10px 15px;">></button>
+            </div>
+        </div>
+
+        <div id="tab-rank" class="tab-content card hidden">
             <span class="label">Топ студентов</span>
-            <div id="leaderboard-list">
-                </div>
+            <div id="leader-list"></div>
         </div>
+
+        <div id="tab-ach" class="tab-content card hidden">
+            <span class="label">Ваши достижения</span>
+            <div class="ach-grid" id="ach-list">
+                <div class="ach-card" id="ach-early_bird">
+                    <i class="fa-solid fa-sun"></i>
+                    <b>Пташка</b><span>Заход до 8:00</span>
+                </div>
+                <div class="ach-card" id="ach-marathon">
+                    <i class="fa-solid fa-bolt"></i>
+                    <b>Марафонец</b><span>2 часа учебы</span>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
 <script>
-    // ТВОИ ДАННЫЕ SUPABASE
     const SB_URL = "https://uztmyzrkkjktpqabmbqj.supabase.co";
     const SB_KEY = "sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj";
-    
     const { createClient } = supabase;
     const sb = createClient(SB_URL, SB_KEY);
 
-    let user = null;
-    let timerInterval = null;
-    let seconds = 0;
+    let user = null, timer = null, secs = 0;
 
     async function init() {
         const { data: { session } } = await sb.auth.getSession();
-        if (session) {
-            user = session.user;
-            showApp();
-        } else {
-            document.getElementById('auth-screen').classList.remove('hidden');
-        }
+        if (session) { user = session.user; showApp(); }
+        else document.getElementById('auth-screen').classList.remove('hidden');
     }
 
-    async function login() {
-        await sb.auth.signInWithOAuth({ 
-            provider: 'google', 
-            options: { redirectTo: window.location.href } 
-        });
-    }
-
-    async function logout() {
-        await sb.auth.signOut();
-        window.location.reload();
-    }
+    async function login() { await sb.auth.signInWithOAuth({ provider: 'google' }); }
+    async function logout() { await sb.auth.signOut(); location.reload(); }
 
     async function showApp() {
         document.getElementById('auth-screen').classList.add('hidden');
         document.getElementById('main-app').classList.remove('hidden');
-
-        // 1. Получаем email и имя из объекта пользователя Google
-        const userEmail = user.email;
-        const userName = user.user_metadata.full_name || user.email.split('@')[0];
-
-        // 2. Отображаем в интерфейсе
-        document.getElementById('user-email').innerText = userEmail;
-        document.getElementById('user-display-name').innerText = userName;
-        document.getElementById('profile-name-top').innerText = userName;
-        document.getElementById('user-avatar').innerText = userName[0].toUpperCase();
-
-        // 3. Синхронизируем с таблицей Profiles в Supabase
-        let { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
         
-        if (!profile) {
-            // Если зашел впервые - создаем запись
-            await sb.from('profiles').insert([
-                { id: user.id, username: userName, status: 'online' }
-            ]);
-        }
+        const name = user.user_metadata.full_name || user.email.split('@')[0];
+        document.getElementById('user-name-top').innerText = name;
+        document.getElementById('user-full-name').innerText = name;
+        document.getElementById('user-email-text').innerText = user.email;
+        document.getElementById('user-ava').innerText = name[0];
 
-        document.getElementById('total-time-val').innerText = (profile?.total_study_time || 0) + 'м';
+        loadMessages();
+        loadLeaderboard();
+        checkAchievements();
+        
+        sb.channel('chat').on('postgres_changes', {event:'INSERT', schema:'public', table:'messages'}, loadMessages).subscribe();
+    }
+
+    // Таймер
+    function startTimer() {
+        if(timer) return;
+        document.getElementById('current-mode').innerText = "📖 УЧУСЬ";
+        document.getElementById('current-mode').style.color = "#22c55e";
+        timer = setInterval(() => { secs++; document.getElementById('timer-val').innerText = secs; }, 1000);
+    }
+
+    async function saveTimer() {
+        clearInterval(timer); timer = null;
+        const minsToAdd = Math.floor(secs / 60) || 1; // минимум 1 мин если немного посидел
+        const { data: p } = await sb.from('profiles').select('total_study_time').eq('id', user.id).single();
+        await sb.from('profiles').update({ total_study_time: (p.total_study_time || 0) + minsToAdd }).eq('id', user.id);
+        secs = 0; document.getElementById('timer-val').innerText = 0;
+        document.getElementById('current-mode').innerText = "☕ ПЕРЕРЫВ";
+        document.getElementById('current-mode').style.color = "#fbbf24";
         loadLeaderboard();
     }
 
-    function startTimer() {
-        if (timerInterval) return;
-        timerInterval = setInterval(() => {
-            seconds++;
-            document.getElementById('timer-val').innerText = seconds;
-        }, 1000);
+    // Вкладки
+    function switchTab(btn, tabId) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        btn.classList.add('active');
+        document.getElementById(tabId).classList.remove('hidden');
     }
 
-    function stopTimer() {
-        clearInterval(timerInterval);
-        timerInterval = null;
+    // Статус
+    async function setStatus(btn, text) {
+        document.querySelectorAll('.st-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        await sb.from('profiles').update({ status: text }).eq('id', user.id);
+    }
+
+    // Чат
+    async function sendMsg() {
+        const val = document.getElementById('chat-in').value;
+        if(!val) return;
+        await sb.from('messages').insert({ user_id: user.id, content: val });
+        document.getElementById('chat-in').value = '';
+    }
+
+    async function loadMessages() {
+        const { data } = await sb.from('messages').select('content, profiles(username)').order('created_at', {ascending:false}).limit(15);
+        document.getElementById('chat-box').innerHTML = data.reverse().map(m => `
+            <div class="chat-msg"><b>${m.profiles?.username}</b>${m.content}</div>
+        `).join('');
+        const b = document.getElementById('chat-box'); b.scrollTop = b.scrollHeight;
     }
 
     async function loadLeaderboard() {
-        const { data } = await sb.from('profiles').select('*').order('total_study_time', { ascending: false }).limit(5);
-        const list = document.getElementById('leaderboard-list');
-        list.innerHTML = data.map(u => `
-            <div class="leaderboard-item">
-                <div class="avatar" style="width:30px; height:30px; font-size:14px;">${u.username[0].toUpperCase()}</div>
-                <div class="user-info">
-                    <p style="font-size:13px;">${u.username}</p>
-                    <span style="font-size:10px;">Суммарно: ${u.total_study_time} мин.</span>
-                </div>
-                <div style="color: #3b82f6; font-weight: bold;">🏆</div>
+        const { data } = await sb.from('profiles').select('*').order('total_study_time', {ascending:false}).limit(5);
+        document.getElementById('leader-list').innerHTML = data.map(u => `
+            <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #2d313f">
+                <span>${u.username}</span><b>${u.total_study_time}м</b>
             </div>
         `).join('');
+    }
+
+    async function checkAchievements() {
+        const { data } = await sb.from('user_achievements').select('achievement_id');
+        const userAchs = data.map(a => a.achievement_id);
+        document.querySelectorAll('.ach-card').forEach(card => {
+            const id = card.id.replace('ach-', '');
+            if (!userAchs.includes(id)) card.classList.add('locked');
+        });
     }
 
     init();
