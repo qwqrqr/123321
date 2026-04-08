@@ -1,261 +1,206 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Realtime Monitor Pro | Aman Beigel</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root { --bg: #0f111a; --card: #1a1d29; --p: #3b82f6; --acc: #22c55e; --text: #ffffff; --dim: #94a3b8; }
-        body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 15px; display: flex; justify-content: center; }
-        .wrapper { width: 100%; max-width: 420px; }
-        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
-        .label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: block; }
-        
-        .timer-big { text-align: center; font-size: 54px; font-weight: 800; color: var(--acc); margin: 10px 0; }
-        .timer-big span { font-size: 20px; color: var(--dim); }
-        
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { padding: 12px; border-radius: 12px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
-        .btn-play { background: rgba(34,197,94,0.15); color: var(--acc); border: 1px solid var(--acc); }
-        .btn-stop { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid #ef4444; }
-        .btn-exit { background: #2d313f; color: var(--dim); grid-column: span 2; margin-top: 5px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realtime Monitor Pro</title>
 
-        .status-select { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
-        .st-btn { background: #242838; padding: 10px; border-radius: 12px; font-size: 13px; border: 1px solid transparent; cursor: pointer; color: var(--dim); text-align: left; transition: 0.3s; }
-        .st-btn.active { border-color: var(--p); background: rgba(59,130,246,0.1); color: #fff; }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        .tabs-nav { display: flex; background: #141721; border-radius: 12px; padding: 5px; margin-bottom: 15px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: none; color: var(--dim); cursor: pointer; font-size: 12px; font-weight: 600; border-radius: 8px; }
-        .tab-btn.active { background: #2d313f; color: #fff; }
-
-        #chat-box { height: 180px; overflow-y: auto; font-size: 13px; margin-bottom: 10px; }
-        .chat-msg { margin-bottom: 8px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px; border-left: 3px solid var(--p); }
-        .chat-msg b { color: var(--p); display: block; font-size: 11px; }
-
-        /* Стили для наград */
-        .ach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .ach-card { background: #242838; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; }
-        .ach-card.locked { opacity: 0.25; filter: grayscale(1); }
-        .ach-card i { font-size: 20px; color: #fbbf24; margin-bottom: 8px; display: block; }
-        .ach-card b { font-size: 12px; display: block; color: #fff; }
-        .ach-card span { font-size: 10px; color: var(--dim); }
-
-        .hidden { display: none !important; }
-        .avatar { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #3b82f6, #22c55e); display: flex; align-items: center; justify-content: center; font-weight: bold; }
-    </style>
+<style>
+body {background:#0f111a;color:white;font-family:sans-serif;padding:20px}
+.card{background:#1a1d29;padding:15px;border-radius:15px;margin-bottom:10px}
+button{margin:3px;padding:6px 10px;border:none;border-radius:8px;cursor:pointer}
+.chat-msg{background:#222;padding:8px;border-radius:8px;margin-bottom:5px}
+.hidden{display:none}
+</style>
 </head>
+
 <body>
 
-<div class="wrapper">
-    <div id="auth-screen" class="card" style="text-align: center; margin-top: 80px;">
-        <h1>REALTIME <span style="color: var(--p);">MONITOR</span></h1>
-        <button class="btn btn-play" onclick="login()" style="width: 100%;">Войти через Google</button>
-    </div>
+<div id="auth-screen" class="card">
+<button onclick="login()">Войти через Google</button>
+</div>
 
-    <div id="main-app" class="hidden">
-        <div class="card">
-            <span class="label">Трекер времени</span>
-            <div style="text-align: center;">
-                <p id="user-name-top" style="margin: 0; font-weight: 700; font-size: 18px;"></p>
-                <div class="timer-big"><span id="timer-val">0</span> <span>сек.</span></div>
-                <div id="current-mode" style="color: #fbbf24; font-size: 11px; font-weight: bold; text-transform: uppercase;">☕ Перерыв</div>
-            </div>
-            <div class="btn-grid" style="margin-top: 15px;">
-                <button class="btn btn-play" onclick="startTimer()"><i class="fa-solid fa-play"></i> Учиться</button>
-                <button class="btn btn-stop" onclick="saveTimer()"><i class="fa-solid fa-check"></i> Завершить</button>
-                <button class="btn btn-exit" onclick="logout()">Выйти</button>
-            </div>
-        </div>
+<div id="main-app" class="hidden">
 
-        <div class="card">
-            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 15px;">
-                <div class="avatar" id="user-ava">?</div>
-                <div>
-                    <b id="user-full-name">Загрузка...</b><br>
-                    <span id="user-status-text" style="font-size: 12px; color: var(--acc);">Определяем статус...</span>
-                </div>
-            </div>
-            <div class="status-select">
-                <button id="st-online" class="st-btn" onclick="setStatus(this, 'online')">🟢 В сети</button>
-                <button id="st-away" class="st-btn" onclick="setStatus(this, 'away')">🟡 Отошёл</button>
-                <button id="st-busy" class="st-btn" onclick="setStatus(this, 'busy')">🔴 Занят</button>
-                <button id="st-coffee" class="st-btn" onclick="setStatus(this, 'coffee')">☕ Кофе</button>
-                <button id="st-study" class="st-btn" onclick="setStatus(this, 'study')" style="grid-column: span 2;">📖 Учусь</button>
-            </div>
-        </div>
+<div class="card">
+<div id="current-mode">☕ Перерыв</div>
+<div><span id="timer-val">0</span> сек</div>
 
-        <div class="tabs-nav">
-            <button class="tab-btn active" onclick="switchTab(this, 'tab-chat')">Чат</button>
-            <button class="tab-btn" onclick="switchTab(this, 'tab-rank')">ТОП</button>
-            <button class="tab-btn" onclick="switchTab(this, 'tab-ach')">Награды</button>
-        </div>
+<button onclick="startTimer()">📖 Учиться</button>
+<button onclick="saveTimer()">✔ Завершить</button>
+<button onclick="logout()">Выйти</button>
+</div>
 
-        <div id="tab-chat" class="tab-content card">
-            <div id="chat-box"></div>
-            <div style="display: flex; gap: 8px;">
-                <input type="text" id="chat-in" style="flex:1; background: #0f111a; border: 1px solid #2d313f; color: white; padding: 10px; border-radius: 10px;" placeholder="Сообщение...">
-                <button onclick="sendMsg()" class="btn btn-play"> <i class="fa-solid fa-paper-plane"></i> </button>
-            </div>
-        </div>
+<div class="card">
+<div id="user-email-text"></div>
+<div id="user-status-text"></div>
 
-        <div id="tab-rank" class="tab-content card hidden">
-            <span class="label">Лидеры недели</span>
-            <div id="leader-list"></div>
-        </div>
+<button onclick="setStatus('online')">🟢 В сети</button>
+<button onclick="setStatus('away')">🟡 Отошёл</button>
+<button onclick="setStatus('busy')">🔴 Занят</button>
+<button onclick="setStatus('coffee')">☕ Кофе</button>
+<button onclick="setStatus('study')">📖 Учусь</button>
+</div>
 
-        <div id="tab-ach" class="tab-content card hidden">
-            <span class="label">Твои достижения</span>
-            <div class="ach-grid">
-                <div class="ach-card locked" id="ach-early_bird">
-                    <i class="fa-solid fa-sun"></i>
-                    <b>Пташка</b><span>Заход до 8:00</span>
-                </div>
-                <div class="ach-card locked" id="ach-marathon">
-                    <i class="fa-solid fa-bolt"></i>
-                    <b>Марафонец</b><span>2 часа учебы</span>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="card">
+<div id="chat-box"></div>
+<input id="chat-in">
+<button onclick="sendMsg()">Отправить</button>
+</div>
+
 </div>
 
 <script>
-    const SB_URL = "https://uztmyzrkkjktpqabmbqj.supabase.co"; 
-    const SB_KEY = "sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj";
-    const sb = supabase.createClient(SB_URL, SB_KEY);
+const SB_URL="https://uztmyzrkkjktpqabmbqj.supabase.co";
+const SB_KEY="sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj";
+const sb=supabase.createClient(SB_URL,SB_KEY);
 
-    let user = null, timer = null, secs = 0;
+let user,timer=null,secs=0;
 
-    async function init() {
-        const { data: { session } } = await sb.auth.getSession();
-        if (session) { 
-            user = session.user; 
-            await syncProfile(); 
-            showApp(); 
-        } else {
-            document.getElementById('auth-screen').classList.remove('hidden');
-        }
-    }
+async function init(){
+const {data:{session}}=await sb.auth.getSession();
+if(session){
+user=session.user;
+await syncProfile();
+showApp();
+}else{
+document.getElementById('auth-screen').classList.remove('hidden');
+}
+}
 
-    async function login() { await sb.auth.signInWithOAuth({ provider: 'google' }); }
-    async function logout() { await sb.auth.signOut(); location.reload(); }
+async function login(){
+await sb.auth.signInWithOAuth({provider:'google'});
+}
 
-    async function syncProfile() {
-        const { data: profile } = await sb.from('profiles').select('*').eq('id', user.id).single();
-        if (!profile) {
-            await sb.from('profiles').insert([{ id: user.id, username: user.email, status: 'online', total_study_time: 0 }]);
-        }
-    }
+async function logout(){
+await sb.auth.signOut();
+location.reload();
+}
 
-    async function showApp() {
-        document.getElementById('auth-screen').classList.add('hidden');
-        document.getElementById('main-app').classList.remove('hidden');
-        document.getElementById('user-name-top').innerText = user.email.split('@')[0];
-        document.getElementById('user-full-name').innerText = user.email;
-        document.getElementById('user-ava').innerText = user.email[0].toUpperCase();
+async function syncProfile(){
+const {data}=await sb.from('profiles').select('*').eq('id',user.id).single();
+if(!data){
+await sb.from('profiles').insert({
+id:user.id,
+username:user.email,
+status:'online',
+total_study_time:0
+});
+}
+}
 
-        loadMyStatus();
-        loadMessages();
-        loadLeaderboard();
-        checkAchievements();
-        
-        sb.channel('any').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, loadMessages).subscribe();
-    }
+async function showApp(){
+document.getElementById('auth-screen').classList.add('hidden');
+document.getElementById('main-app').classList.remove('hidden');
 
-    function updateStatusUI(status) {
-        const map = { online: "🟢 В сети", away: "🟡 Отошёл", busy: "🔴 Занят", coffee: "☕ Кофе", study: "📖 Учусь" };
-        document.getElementById('user-status-text').innerText = map[status] || "";
-        document.querySelectorAll('.st-btn').forEach(b => b.classList.remove('active'));
-        const activeBtn = document.getElementById('st-' + status);
-        if(activeBtn) activeBtn.classList.add('active');
-    }
+document.getElementById('user-email-text').innerText=user.email;
 
-    async function setStatus(btn, status) {
-        updateStatusUI(status);
-        await sb.from('profiles').update({ status: status }).eq('id', user.id);
-    }
+await loadMyStatus();
+loadMessages();
+}
 
-    async function loadMyStatus() {
-        const { data } = await sb.from('profiles').select('status').eq('id', user.id).single();
-        if (data) updateStatusUI(data.status);
-    }
+function startTimer(){
+if(timer) return;
 
-    function startTimer() {
-        if(timer) return;
-        document.getElementById('current-mode').innerText = "";
-        document.getElementById('current-mode').style.color = "#22c55e";
-        setStatus(null, 'study');
-        timer = setInterval(() => { secs++; document.getElementById('timer-val').innerText = secs; }, 1000);
-    }
+document.getElementById('current-mode').innerText="📖 Учусь";
+updateStatusText("study");
 
-    async function saveTimer() {
-        if (!timer) return;
-        clearInterval(timer); 
-        timer = null;
-        
-        const mins = Math.max(1, Math.floor(secs/60));
-        const { data } = await sb.from('profiles').select('total_study_time').eq('id', user.id).single();
-        const newTotal = (data.total_study_time || 0) + mins;
-        await sb.from('profiles').update({ total_study_time: newTotal, status: 'online' }).eq('id', user.id);
-        
-        secs = 0; 
-        document.getElementById('timer-val').innerText = 0;
-        document.getElementById('current-mode').innerText = "☕ Перерыв";
-        document.getElementById('current-mode').style.color = "#fbbf24";
-        updateStatusUI('online');
-        loadLeaderboard();
-        checkAchievements(); // Проверяем, не открыл ли новую награду
-    }
+sb.from('profiles').update({status:'study'}).eq('id',user.id);
 
-    async function checkAchievements() {
-        const { data } = await sb.from('user_achievements').select('achievement_id').eq('user_id', user.id);
-        if (data) {
-            const myIds = data.map(a => a.achievement_id);
-            if(myIds.includes('early_bird')) document.getElementById('ach-early_bird').classList.remove('locked');
-            if(myIds.includes('marathon')) document.getElementById('ach-marathon').classList.remove('locked');
-        }
-    }
+timer=setInterval(()=>{
+secs++;
+document.getElementById('timer-val').innerText=secs;
+},1000);
+}
 
-    function switchTab(btn, tabId) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        btn.classList.add('active');
-        document.getElementById(tabId).classList.remove('hidden');
-    }
+function saveTimer(){
+if(!timer) return;
+clearInterval(timer);
+timer=null;
 
-    async function sendMsg() {
-        const inp = document.getElementById('chat-in');
-        if(!inp.value.trim()) return;
-        await sb.from('messages').insert({ user_id: user.id, content: inp.value });
-        inp.value = '';
-    }
+secs=0;
+document.getElementById('timer-val').innerText=0;
 
-    async function loadMessages() {
-        const { data } = await sb.from('messages').select('content, profiles(username)').order('created_at', { ascending: false }).limit(10);
-        if (data) {
-            document.getElementById('chat-box').innerHTML = data.reverse().map(m => `
-                <div class="chat-msg"><b>${m.profiles?.username || 'Студент'}</b>${m.content}</div>
-            `).join('');
-            const box = document.getElementById('chat-box');
-            box.scrollTop = box.scrollHeight;
-        }
-    }
+document.getElementById('current-mode').innerText="☕ Перерыв";
+updateStatusText("coffee");
+}
 
-    async function loadLeaderboard() {
-        const { data } = await sb.from('profiles').select('username, total_study_time').order('total_study_time', { ascending: false }).limit(10);
-        if (data) {
-            document.getElementById('leader-list').innerHTML = data.map((u, i) => `
-                <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05)">
-                    <span>${i+1}. ${u.username.split('@')[0]}</span>
-                    <b style="color:var(--acc)">${u.total_study_time || 0} мин.</b>
-                </div>
-            `).join('');
-        }
-    }
+async function setStatus(status){
+await sb.from('profiles').update({status}).eq('id',user.id);
+updateStatusText(status);
+}
 
-    init();
+function updateStatusText(status){
+const map={
+online:"🟢 В сети",
+away:"🟡 Отошёл",
+busy:"🔴 Занят",
+coffee:"☕ Кофе",
+study:"📖 Учусь"
+};
+document.getElementById('user-status-text').innerText=map[status]||"";
+document.getElementById('current-mode').innerText=map[status]||"☕ Перерыв";
+}
+
+async function loadMyStatus(){
+const {data}=await sb.from('profiles').select('status').eq('id',user.id).single();
+if(data){
+updateStatusText(data.status);
+}
+}
+
+async function sendMsg(){
+const msg=document.getElementById('chat-in').value;
+if(!msg) return;
+
+await sb.from('messages').insert({
+content:msg,
+user_id:user.id
+});
+
+document.getElementById('chat-in').value="";
+loadMessages();
+}
+
+async function loadMessages(){
+const {data}=await sb.from('messages').select('*').order('id',{ascending:false}).limit(20);
+
+document.getElementById('chat-box').innerHTML=data.map(m=>`
+<div class="chat-msg">
+${m.content}<br>
+<button onclick="deleteMessage('${m.id}')">🗑</button>
+<button onclick="editMessage('${m.id}','${m.content}')">✏️</button>
+</div>
+`).join('');
+}
+
+async function deleteMessage(id){
+if(!confirm("Удалить сообщение?")) return;
+
+await sb.from('messages')
+.delete()
+.eq('id',id)
+.eq('user_id',user.id);
+
+loadMessages();
+}
+
+async function editMessage(id,oldText){
+const newText=prompt("Редактировать:",oldText);
+if(!newText) return;
+
+await sb.from('messages')
+.update({content:newText})
+.eq('id',id)
+.eq('user_id',user.id);
+
+loadMessages();
+}
+
+init();
 </script>
+
 </body>
 </html>
