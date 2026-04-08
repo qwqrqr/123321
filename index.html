@@ -97,26 +97,42 @@
 
     let user = null, timer = null, secs = 0;
 
+    // ГЛАВНАЯ ФУНКЦИЯ ЗАПУСКА
     async function init() {
+        // 1. Проверяем, есть ли уже активная сессия
         const { data: { session } } = await sb.auth.getSession();
-        if (session) { 
-            user = session.user; 
+        
+        if (session) {
+            user = session.user;
             await checkProfile();
-            showApp(); 
-        } else {
-            document.getElementById('auth-screen').classList.remove('hidden');
+            showApp();
         }
+
+        // 2. СЛУШАТЕЛЬ: Ловит момент, когда ты выбрал почту и вернулся на сайт
+        sb.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                user = session.user;
+                await checkProfile();
+                showApp();
+            }
+            if (event === 'SIGNED_OUT') {
+                location.reload();
+            }
+        });
     }
 
     async function login() { 
-        await sb.auth.signInWithOAuth({ 
+        const { error } = await sb.auth.signInWithOAuth({ 
             provider: 'google',
             options: { 
-                queryParams: { prompt: 'select_account' }, // Показывает выбор почты
-                redirectTo: window.location.href 
+                queryParams: { prompt: 'select_account' },
+                redirectTo: window.location.origin + window.location.pathname // Возвращает на ту же страницу
             }
         }); 
+        if (error) alert("Ошибка входа: " + error.message);
     }
+
+    // Остальные функции (checkProfile, showApp, и т.д.) остаются без изменений
 
     async function logout() { await sb.auth.signOut(); location.reload(); }
 
