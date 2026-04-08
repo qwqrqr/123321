@@ -30,9 +30,18 @@
         .tab-btn { flex: 1; padding: 10px; border: none; background: none; color: var(--dim); cursor: pointer; font-size: 12px; font-weight: 600; border-radius: 8px; }
         .tab-btn.active { background: #2d313f; color: #fff; }
 
-        #chat-box { height: 200px; overflow-y: auto; font-size: 13px; margin-bottom: 10px; }
+        #chat-box { height: 180px; overflow-y: auto; font-size: 13px; margin-bottom: 10px; }
         .chat-msg { margin-bottom: 8px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 8px; border-left: 3px solid var(--p); }
-        
+        .chat-msg b { color: var(--p); display: block; font-size: 11px; }
+
+        /* Стили для наград */
+        .ach-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .ach-card { background: #242838; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); transition: 0.3s; }
+        .ach-card.locked { opacity: 0.25; filter: grayscale(1); }
+        .ach-card i { font-size: 20px; color: #fbbf24; margin-bottom: 8px; display: block; }
+        .ach-card b { font-size: 12px; display: block; color: #fff; }
+        .ach-card span { font-size: 10px; color: var(--dim); }
+
         .hidden { display: none !important; }
         .avatar { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #3b82f6, #22c55e); display: flex; align-items: center; justify-content: center; font-weight: bold; }
     </style>
@@ -80,6 +89,7 @@
         <div class="tabs-nav">
             <button class="tab-btn active" onclick="switchTab(this, 'tab-chat')">Чат</button>
             <button class="tab-btn" onclick="switchTab(this, 'tab-rank')">ТОП</button>
+            <button class="tab-btn" onclick="switchTab(this, 'tab-ach')">Награды</button>
         </div>
 
         <div id="tab-chat" class="tab-content card">
@@ -91,7 +101,22 @@
         </div>
 
         <div id="tab-rank" class="tab-content card hidden">
+            <span class="label">Лидеры недели</span>
             <div id="leader-list"></div>
+        </div>
+
+        <div id="tab-ach" class="tab-content card hidden">
+            <span class="label">Твои достижения</span>
+            <div class="ach-grid">
+                <div class="ach-card locked" id="ach-early_bird">
+                    <i class="fa-solid fa-sun"></i>
+                    <b>Пташка</b><span>Заход до 8:00</span>
+                </div>
+                <div class="ach-card locked" id="ach-marathon">
+                    <i class="fa-solid fa-bolt"></i>
+                    <b>Марафонец</b><span>2 часа учебы</span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -134,16 +159,14 @@
         loadMyStatus();
         loadMessages();
         loadLeaderboard();
+        checkAchievements();
         
         sb.channel('any').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, loadMessages).subscribe();
     }
 
-    // --- ТАЙМЕР И СТАТУСЫ ---
     function updateStatusUI(status) {
         const map = { online: "🟢 В сети", away: "🟡 Отошёл", busy: "🔴 Занят", coffee: "☕ Кофе", study: "📖 Учусь" };
         document.getElementById('user-status-text').innerText = map[status] || "";
-        
-        // Подсветка кнопки
         document.querySelectorAll('.st-btn').forEach(b => b.classList.remove('active'));
         const activeBtn = document.getElementById('st-' + status);
         if(activeBtn) activeBtn.classList.add('active');
@@ -174,7 +197,8 @@
         
         const mins = Math.max(1, Math.floor(secs/60));
         const { data } = await sb.from('profiles').select('total_study_time').eq('id', user.id).single();
-        await sb.from('profiles').update({ total_study_time: (data.total_study_time || 0) + mins, status: 'online' }).eq('id', user.id);
+        const newTotal = (data.total_study_time || 0) + mins;
+        await sb.from('profiles').update({ total_study_time: newTotal, status: 'online' }).eq('id', user.id);
         
         secs = 0; 
         document.getElementById('timer-val').innerText = 0;
@@ -182,6 +206,16 @@
         document.getElementById('current-mode').style.color = "#fbbf24";
         updateStatusUI('online');
         loadLeaderboard();
+        checkAchievements(); // Проверяем, не открыл ли новую награду
+    }
+
+    async function checkAchievements() {
+        const { data } = await sb.from('user_achievements').select('achievement_id').eq('user_id', user.id);
+        if (data) {
+            const myIds = data.map(a => a.achievement_id);
+            if(myIds.includes('early_bird')) document.getElementById('ach-early_bird').classList.remove('locked');
+            if(myIds.includes('marathon')) document.getElementById('ach-marathon').classList.remove('locked');
+        }
     }
 
     function switchTab(btn, tabId) {
@@ -193,7 +227,7 @@
 
     async function sendMsg() {
         const inp = document.getElementById('chat-in');
-        if(!inp.value) return;
+        if(!inp.value.trim()) return;
         await sb.from('messages').insert({ user_id: user.id, content: inp.value });
         inp.value = '';
     }
@@ -202,18 +236,20 @@
         const { data } = await sb.from('messages').select('content, profiles(username)').order('created_at', { ascending: false }).limit(10);
         if (data) {
             document.getElementById('chat-box').innerHTML = data.reverse().map(m => `
-                <div class="chat-msg"><b>${m.profiles?.username}</b>${m.content}</div>
+                <div class="chat-msg"><b>${m.profiles?.username || 'Студент'}</b>${m.content}</div>
             `).join('');
+            const box = document.getElementById('chat-box');
+            box.scrollTop = box.scrollHeight;
         }
     }
 
     async function loadLeaderboard() {
-        const { data } = await sb.from('profiles').select('username, total_study_time').order('total_study_time', { ascending: false });
+        const { data } = await sb.from('profiles').select('username, total_study_time').order('total_study_time', { ascending: false }).limit(10);
         if (data) {
             document.getElementById('leader-list').innerHTML = data.map((u, i) => `
-                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #2d313f">
-                    <span>${i+1}. ${u.username}</span>
-                    <b style="color:var(--acc)">${u.total_study_time}м</b>
+                <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05)">
+                    <span>${i+1}. ${u.username.split('@')[0]}</span>
+                    <b style="color:var(--acc)">${u.total_study_time || 0} мин.</b>
                 </div>
             `).join('');
         }
