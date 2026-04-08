@@ -28,6 +28,13 @@ body { background:var(--bg); color:var(--text); font-family:'Segoe UI'; margin:0
 .st-btn { background:#242838; padding:10px; border-radius:12px; cursor:pointer; color:var(--dim);}
 .st-btn.active { border:1px solid var(--p); color:#fff;}
 
+.tabs-nav { display:flex; background:#141721; border-radius:12px; padding:5px; margin-bottom:15px;}
+.tab-btn { flex:1; padding:10px; border:none; background:none; color:var(--dim); cursor:pointer;}
+.tab-btn.active { background:#2d313f; color:#fff;}
+
+#chat-box { height:200px; overflow-y:auto;}
+.chat-msg { margin-bottom:8px; background:rgba(255,255,255,0.03); padding:8px; border-radius:8px;}
+
 .hidden { display:none;}
 .avatar { width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,#3b82f6,#22c55e); display:flex; align-items:center; justify-content:center;}
 </style>
@@ -72,13 +79,31 @@ body { background:var(--bg); color:var(--text); font-family:'Segoe UI'; margin:0
 </div>
 </div>
 
+<div class="tabs-nav">
+<button class="tab-btn active" onclick="switchTab(this,'tab-chat')">Чат</button>
+<button class="tab-btn" onclick="switchTab(this,'tab-rank')">ТОП</button>
+<button class="tab-btn" onclick="switchTab(this,'tab-ach')">Награды</button>
+</div>
+
+<div id="tab-chat" class="card">
+<div id="chat-box"></div>
+<input id="chat-in"><button onclick="sendMsg()">Отправить</button>
+</div>
+
+<div id="tab-rank" class="card hidden">
+<div id="leader-list"></div>
+</div>
+
+<div id="tab-ach" class="card hidden">
+<div id="ach-list"></div>
+</div>
+
 </div>
 </div>
 
 <script>
 const SB_URL="https://uztmyzrkkjktpqabmbqj.supabase.co";
 const SB_KEY="sb_publishable_NCWb9-WFsrXDtkYruYcnsA_RQgmQSsj";
-
 const sb=supabase.createClient(SB_URL,SB_KEY);
 
 let user,timer=null,secs=0;
@@ -125,12 +150,17 @@ document.getElementById('user-email-text').innerText=user.email;
 document.getElementById('user-ava').innerText=user.email[0];
 
 await loadMyStatus();
+loadMessages();
+loadLeaderboard();
 }
 
 function startTimer(){
 if(timer) return;
+
 document.getElementById('current-mode').innerText="📖 Учусь";
 updateStatusText("study");
+
+sb.from('profiles').update({status:'study'}).eq('id',user.id);
 
 timer=setInterval(()=>{
 secs++;
@@ -143,10 +173,6 @@ if(!timer) return;
 clearInterval(timer);
 timer=null;
 
-await sb.from('profiles')
-.update({total_study_time:secs})
-.eq('id',user.id);
-
 secs=0;
 document.getElementById('timer-val').innerText=0;
 document.getElementById('current-mode').innerText="☕ Перерыв";
@@ -157,7 +183,6 @@ document.querySelectorAll('.st-btn').forEach(b=>b.classList.remove('active'));
 btn.classList.add('active');
 
 await sb.from('profiles').update({status}).eq('id',user.id);
-
 updateStatusText(status);
 }
 
@@ -174,13 +199,33 @@ document.getElementById('user-status-text').innerText=map[status]||"";
 
 async function loadMyStatus(){
 const {data}=await sb.from('profiles').select('status').eq('id',user.id).single();
-
 if(data){
 updateStatusText(data.status);
-
 const btn=document.getElementById('st-'+data.status);
 if(btn) btn.classList.add('active');
 }
+}
+
+function switchTab(btn,id){
+document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+document.querySelectorAll('.card').forEach(c=>c.classList.add('hidden'));
+document.getElementById(id).classList.remove('hidden');
+btn.classList.add('active');
+}
+
+async function sendMsg(){
+const msg=document.getElementById('chat-in').value;
+await sb.from('messages').insert({content:msg,user_id:user.id});
+}
+
+async function loadMessages(){
+const {data}=await sb.from('messages').select('*');
+document.getElementById('chat-box').innerHTML=data.map(m=>`<div>${m.content}</div>`).join('');
+}
+
+async function loadLeaderboard(){
+const {data}=await sb.from('profiles').select('*').order('total_study_time',{ascending:false});
+document.getElementById('leader-list').innerHTML=data.map(u=>`<div>${u.username} ${u.total_study_time}</div>`).join('');
 }
 
 init();
