@@ -184,7 +184,7 @@
 
     function startTimer() {
         if(timer) return;
-        document.getElementById('current-mode').innerText = "📖 Учусь";
+        document.getElementById('current-mode').innerText = "";
         document.getElementById('current-mode').style.color = "#22c55e";
         setStatus(null, 'study');
         timer = setInterval(() => { secs++; document.getElementById('timer-val').innerText = secs; }, 1000);
